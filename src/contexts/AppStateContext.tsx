@@ -271,8 +271,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       (snap) => {
         const data = snap.docs
           .map((docSnap) => ({
-            id: docSnap.id,
             ...(docSnap.data() as RideRequestEntity),
+            id: docSnap.id,
           }))
           .map(mapRideRequestEntity);
         setRideRequests(data);
@@ -316,35 +316,39 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     let unsubscribe: (() => void) | undefined;
     let mounted = true;
-    const result = listenForegroundMessages((payload: any) => {
-      const messageId = payload?.messageId ?? `fcm-${Date.now()}`;
-      const body =
-        payload?.notification?.body ??
-        payload?.data?.message ??
-        'Notification reçue';
-      const actionLabel =
-        payload?.notification?.title ?? payload?.data?.actionLabel;
-      setNotifications((prev) => [
-        {
-          id: `fcm-${messageId}`,
-          message: body,
-          type: 'info',
-          timestamp: new Date().toISOString(),
-          actionLabel,
-        },
-        ...prev,
-      ]);
-    });
-    if (result && typeof result.then === 'function') {
-      result
-        .then((stop: any) => {
-          if (mounted) {
-            unsubscribe = stop;
-          }
-        })
-        .catch((error: any) => {
-          console.warn('[messaging] foreground listener failed', error);
-        });
+    try {
+      const result = listenForegroundMessages((payload: any) => {
+        const messageId = payload?.messageId ?? `fcm-${Date.now()}`;
+        const body =
+          payload?.notification?.body ??
+          payload?.data?.message ??
+          'Notification reçue';
+        const actionLabel =
+          payload?.notification?.title ?? payload?.data?.actionLabel;
+        setNotifications((prev) => [
+          {
+            id: `fcm-${messageId}`,
+            message: body,
+            type: 'info',
+            timestamp: new Date().toISOString(),
+            actionLabel,
+          },
+          ...prev,
+        ]);
+      });
+      if (result && typeof result === 'object' && 'then' in result) {
+        (result as Promise<any>)
+          .then((stop: any) => {
+            if (mounted) {
+              unsubscribe = stop;
+            }
+          })
+          .catch((error: any) => {
+            console.warn('[messaging] foreground listener failed', error);
+          });
+      }
+    } catch (error) {
+      console.warn('[messaging] setup failed', error);
     }
     return () => {
       mounted = false;

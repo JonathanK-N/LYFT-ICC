@@ -7,7 +7,9 @@ import {
   FiChevronRight,
   FiLock,
   FiMail,
+  FiShield,
   FiUser,
+  FiZap,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
