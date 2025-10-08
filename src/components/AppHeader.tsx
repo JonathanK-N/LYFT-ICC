@@ -11,16 +11,17 @@ export default function AppHeader() {
   const { isDark, toggleDarkMode, voiceEnabled, toggleVoice } = useTheme();
   const { language, toggleLanguage, translate } = useLanguage();
   const navigate = useNavigate();
+  const logoSrc = branding.iccLogo || '/icons/icon-192.png';
 
   return (
     <header className="app-header">
       <div className="header-brand" onClick={() => navigate('/home')}>
         <div className="logo-badge">
-          <img src={branding.iccLogo} alt="Impact Centre Chrétien" className="icc-logo" />
+          <img src={logoSrc} alt="Impact Centre Chretien" className="icc-logo" />
         </div>
         <div className="brand-copy">
           <strong>Lyft-ICC</strong>
-          <span>Impact Centre Chrétien</span>
+          <span>Impact Centre Chretien</span>
         </div>
       </div>
       <div className="header-actions">
@@ -44,9 +45,7 @@ export default function AppHeader() {
         <button
           type="button"
           className={`icon-btn ${voiceEnabled ? 'primary' : ''}`}
-          aria-label={
-            voiceEnabled ? translate('disable_voice') : translate('enable_voice')
-          }
+          aria-label={voiceEnabled ? translate('disable_voice') : translate('enable_voice')}
           onClick={toggleVoice}
         >
           {voiceEnabled ? <FiVolumeX /> : <FiVolume2 />}
@@ -59,21 +58,17 @@ export default function AppHeader() {
         >
           <FiBell />
         </button>
-        {currentUser && (
-          <button
-            type="button"
-            className="avatar-btn"
-            onClick={() => navigate('/profile')}
-          >
+        {currentUser ? (
+          <button type="button" className="avatar-btn" onClick={() => navigate('/profile')}>
             <img
               src={
                 currentUser.avatar ??
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=66a7ff&color=fff`
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=2563eb&color=ffffff`
               }
               alt={currentUser.name}
             />
           </button>
-        )}
+        ) : null}
       </div>
     </header>
   );

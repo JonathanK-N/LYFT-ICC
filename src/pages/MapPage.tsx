@@ -3,10 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiMapPin,
   FiSearch,
-  FiUser,
   FiClock,
   FiStar,
-  FiNavigation,
   FiPhone,
   FiMessageCircle,
   FiX,

@@ -27,13 +27,11 @@ import type {
   VehicleInfo,
 } from '../types';
 import {
-  acceptedQrTokens,
   sampleEvents,
   sampleMembers,
   sampleNotifications,
   sampleRides,
   sampleStats,
-  verificationCodes,
 } from '../data/sampleData';
 import {
   firebaseServices,
@@ -53,8 +51,6 @@ interface RegisterPayload {
   phone?: string;
   password?: string;
   avatar?: string;
-  code?: string;
-  qrToken?: string;
   language?: Language;
 }
 
@@ -72,7 +68,6 @@ interface AppStateContextValue {
   chatMessages: Record<string, ChatMessage[]>;
   currentUser?: Member;
   adminStats: AdminStats;
-  verifyMembership: (code?: string, qrToken?: string) => boolean;
   registerMember: (payload: RegisterPayload) => Promise<Member | undefined>;
   login: (payload: LoginPayload) => Promise<Member | undefined>;
   logout: () => Promise<void>;
@@ -211,9 +206,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>(
     {},
   );
-  const [currentUser, setCurrentUser] = useState<Member | undefined>(
-    sampleMembers[0],
-  );
+  const [currentUser, setCurrentUser] = useState<Member | undefined>(undefined);
   const [authUid, setAuthUid] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -222,7 +215,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setRides(sampleRides);
       setEvents(sampleEvents);
       setNotifications(sampleNotifications);
-      setCurrentUser(sampleMembers[0]);
+      setCurrentUser(undefined);
       return;
     }
 
@@ -378,13 +371,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
   }, [members, rides]);
 
-  const verifyMembership = (code?: string, qrToken?: string) => {
-    // Inscription libre - plus de vérification de code requis
-    return true;
-  };
-
   const registerMember = async (payload: RegisterPayload) => {
-    // Inscription libre - pas de vérification de code nécessaire
 
     if (firebaseEnabled && payload.email && payload.password) {
       const language = payload.language ?? 'fr';
@@ -418,7 +405,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       role: 'passenger',
       verified: true,
       language: payload.language ?? 'fr',
-      badges: ['Voyageur de lumiere'],
+      badges: [],
       ridesGiven: 0,
       ridesTaken: 0,
       emergencyContact: undefined,
@@ -650,7 +637,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       chatMessages,
       currentUser,
       adminStats,
-      verifyMembership,
       registerMember,
       login,
       logout,
@@ -690,5 +676,6 @@ export function useAppState() {
   }
   return context;
 }
+
 
 

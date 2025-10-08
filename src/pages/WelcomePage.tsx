@@ -38,7 +38,7 @@ export default function WelcomePage() {
       <div className="surface-card welcome-footer">
         <p>
           Application web progressive (PWA) optimisee mobile. Ajoutez-la sur
-          l ecran d accueil pour un acces rapide.
+          votre ecran d accueil pour un acces rapide.
         </p>
         <p>Mode sombre, textes larges et support vocal pour nos seniors.</p>
       </div>

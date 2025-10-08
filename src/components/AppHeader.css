@@ -1,117 +1,104 @@
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 30;
-  padding: clamp(1rem, 2vw, 1.4rem) clamp(1.1rem, 2vw, 1.6rem) 0.8rem;
+  z-index: 20;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1.2rem;
-  background: linear-gradient(180deg, rgba(5, 9, 18, 0.92) 0%, rgba(4, 9, 20, 0.65) 85%, transparent 100%);
-  backdrop-filter: blur(24px);
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 12px;
   cursor: pointer;
 }
 
-.header-brand .logo-badge {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  background: radial-gradient(circle at 30% 30%, rgba(112, 224, 255, 0.6) 0%, rgba(7, 12, 24, 0.9) 70%);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 20px 45px rgba(4, 18, 34, 0.7), 0 0 20px rgba(112, 224, 255, 0.3);
-  position: relative;
-  border: 2px solid rgba(112, 224, 255, 0.4);
+.logo-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e0e7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c7d2fe;
 }
 
-.header-brand .logo-badge img {
-  width: 70%;
-  height: 70%;
+.logo-badge img {
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
-.icc-logo {
-  filter: drop-shadow(0 2px 8px rgba(112, 224, 255, 0.4));
-  transition: all 0.3s ease;
-}
-
-.icc-logo:hover {
-  filter: drop-shadow(0 4px 12px rgba(112, 224, 255, 0.6));
-  transform: scale(1.05);
-}
-
-.header-brand .brand-copy {
+.brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 2px;
 }
 
-.header-brand .brand-copy strong {
-  font-family: var(--icc-font-display);
-  font-size: clamp(1.3rem, 4vw, 1.7rem);
-  letter-spacing: 0.04em;
+.brand-copy strong {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
 }
 
-.header-brand .brand-copy span {
-  font-size: 0.78rem;
-  color: rgba(200, 216, 235, 0.72);
-  letter-spacing: 0.08em;
+.brand-copy span {
+  font-size: 0.8rem;
+  color: #6b7280;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 10px;
 }
 
 .icon-btn {
-  background: rgba(12, 18, 30, 0.8);
-  border-radius: 18px;
-  border: 1px solid rgba(112, 224, 255, 0.16);
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #374151;
   display: grid;
   place-items: center;
-  font-size: 1.2rem;
-  color: rgba(208, 225, 245, 0.75);
-  transition: transform 160ms ease, box-shadow 200ms ease, border 200ms ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
 }
 
 .icon-btn.primary {
-  background: linear-gradient(135deg, rgba(112, 224, 255, 0.3) 0%, rgba(112, 224, 255, 0.18) 100%);
-  color: var(--icc-color-soft-white);
-  border-color: rgba(112, 224, 255, 0.45);
-  box-shadow: 0 14px 30px rgba(14, 55, 92, 0.45);
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
 }
 
 .icon-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 20px 40px rgba(10, 28, 48, 0.45);
+  background: #e5e7eb;
+}
+
+.icon-btn.primary:hover {
+  background: #1d4ed8;
 }
 
 .icon-btn .icon-label {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .avatar-btn {
-  border: none;
-  padding: 0;
-  width: 52px;
-  height: 52px;
-  border-radius: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   overflow: hidden;
-  position: relative;
-  box-shadow: 0 18px 30px rgba(10, 24, 44, 0.45);
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  padding: 0;
 }
 
 .avatar-btn img {
@@ -120,9 +107,8 @@
   object-fit: cover;
 }
 
-.avatar-btn:focus-visible,
-.icon-btn:focus-visible {
-  outline: 2px solid rgba(112, 224, 255, 0.6);
-  outline-offset: 2px;
+.icon-btn:focus-visible,
+.avatar-btn:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 3px;
 }
-
