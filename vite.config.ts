@@ -10,7 +10,8 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: process.env.PORT ? parseInt(process.env.PORT) : 4173
+    port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
+    allowedHosts: ['lyft-icc-production.up.railway.app', '.railway.app']
   },
   build: {
     outDir: 'dist',
