@@ -9,7 +9,7 @@ export default defineConfig({
     port: 5173
   },
   preview: {
-    host: true,
+    host: '0.0.0.0',
     port: process.env.PORT ? parseInt(process.env.PORT) : 4173
   },
   build: {
