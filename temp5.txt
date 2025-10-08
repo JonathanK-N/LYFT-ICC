@@ -1,0 +1,311 @@
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import {
+  FiAward,
+  FiEdit2,
+  FiExternalLink,
+  FiHeart,
+  FiHome,
+  FiLogOut,
+  FiMail,
+  FiPhone,
+  FiShield,
+  FiStar,
+  FiUser,
+} from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { useAppState } from '../contexts/AppStateContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { redirectToDonation } from '../services/payments/stripe';
+import '../pages/styles/ProfilePage.css';
+
+const fadeUp = {
+  hidden: { opacity: 0, translateY: 24 },
+  visible: (index = 1) => ({
+    opacity: 1,
+    translateY: 0,
+    transition: { duration: 0.4, delay: 0.08 * index, ease: 'easeOut' },
+  }),
+};
+
+export default function ProfilePage() {
+  const { currentUser, upgradeToDriver, logout } = useAppState();
+  const { translate } = useLanguage();
+  const navigate = useNavigate();
+  const [driverMode, setDriverMode] = useState(false);
+  const [vehicle, setVehicle] = useState({
+    make: '',
+    model: '',
+    color: '',
+    plate: '',
+    seats: 4,
+  });
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const stats = useMemo(
+    () => [
+      { label: 'Rides taken', value: currentUser.ridesTaken },
+      { label: 'Rides given', value: currentUser.ridesGiven },
+      { label: 'Badges', value: currentUser.badges.length },
+    ],
+    [currentUser],
+  );
+
+  const handleBecomeDriver = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await upgradeToDriver({
+      make: vehicle.make,
+      model: vehicle.model,
+      color: vehicle.color,
+      plate: vehicle.plate,
+      seats: Number(vehicle.seats) || 4,
+    });
+    setDriverMode(false);
+  };
+
+  return (
+    <section className="profile-screen">
+      <motion.article
+        className="panel profile-hero"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="profile-hero__top">
+          <div className="profile-avatar">
+            <img
+              src={
+                currentUser.avatar ??
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=03152C&color=ffffff`
+              }
+              alt={currentUser.name}
+            />
+          </div>
+          <div className="profile-identity">
+            <span className="tag">Compte ICC</span>
+            <h1>{currentUser.name}</h1>
+            <p>
+              <FiShield /> {currentUser.role.toUpperCase()}
+            </p>
+            <div className="profile-tags">
+              {currentUser.email ? (
+                <span className="chip">
+                  <FiMail /> {currentUser.email}
+                </span>
+              ) : null}
+              {currentUser.phone ? (
+                <span className="chip">
+                  <FiPhone /> {currentUser.phone}
+                </span>
+              ) : null}
+              <span className="chip">
+                <FiUser /> {currentUser.language.toUpperCase()}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => navigate('/home')}
+          >
+            <FiHome /> {translate('dashboard')}
+          </button>
+        </div>
+        <div className="profile-stats">
+          {stats.map((stat) => (
+            <div key={stat.label}>
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </div>
+          ))}
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={2}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiAward /> {translate('driver_rewards')}
+            </p>
+            <p className="subtitle">
+              Engagez-vous dans le covoiturage fraternel et recevez badges et
+              encouragements.
+            </p>
+          </div>
+        </header>
+        <div className="profile-badges">
+          {currentUser.badges.length === 0 ? (
+            <div className="empty-state">
+              Aucun badge pour l'instant. Partagez un trajet pour obtenir la
+              premiere recompense.
+            </div>
+          ) : (
+            currentUser.badges.map((badge) => (
+              <span key={badge} className="badge-pill">
+                <FiStar /> {badge}
+              </span>
+            ))
+          )}
+        </div>
+      </motion.article>
+
+      {currentUser.role !== 'driver' && (
+        <motion.article
+          className="panel"
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={3}
+        >
+          <header className="panel-header">
+            <div>
+              <p className="title">
+                <FiStar /> {translate('upgrade_driver')}
+              </p>
+              <p className="subtitle">
+                Beneficiez d'un badge special et aidez les membres a rejoindre la
+                maison de Dieu.
+              </p>
+            </div>
+          </header>
+          {!driverMode ? (
+            <button type="button" className="cta ghost" onClick={() => setDriverMode(true)}>
+              <FiEdit2 /> Completer mon vehicule
+            </button>
+          ) : (
+            <form className="form-grid two-columns" onSubmit={handleBecomeDriver}>
+              <div className="form-field">
+                <label htmlFor="make">{translate('vehicle_make')}</label>
+                <input
+                  id="make"
+                  value={vehicle.make}
+                  onChange={(event) =>
+                    setVehicle((prev) => ({ ...prev, make: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="model">{translate('vehicle_model')}</label>
+                <input
+                  id="model"
+                  value={vehicle.model}
+                  onChange={(event) =>
+                    setVehicle((prev) => ({ ...prev, model: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="color">{translate('vehicle_color')}</label>
+                <input
+                  id="color"
+                  value={vehicle.color}
+                  onChange={(event) =>
+                    setVehicle((prev) => ({ ...prev, color: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="plate">{translate('vehicle_plate')}</label>
+                <input
+                  id="plate"
+                  value={vehicle.plate}
+                  onChange={(event) =>
+                    setVehicle((prev) => ({ ...prev, plate: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="seats">{translate('available_seats')}</label>
+                <input
+                  id="seats"
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={vehicle.seats}
+                  onChange={(event) =>
+                    setVehicle((prev) => ({
+                      ...prev,
+                      seats: Number(event.target.value),
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <button type="submit" className="cta">
+                <FiStar /> Valider
+              </button>
+            </form>
+          )}
+        </motion.article>
+      )}
+
+      <motion.article
+        className="panel"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={4}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiHeart /> {translate('donation_link')}
+            </p>
+            <p className="subtitle">
+              Soutenez Impact Centre Chretien et participez aux projets
+              communautaires.
+            </p>
+          </div>
+        </header>
+        <button
+          type="button"
+          className="cta ghost"
+          onClick={() => {
+            redirectToDonation();
+          }}
+        >
+          <FiExternalLink /> Stripe (placeholder)
+        </button>
+      </motion.article>
+
+      <motion.article
+        className="panel profile-actions"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={5}
+      >
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          disabled={currentUser.role !== 'admin'}
+        >
+          <FiShield /> {translate('admin_portal')}
+        </button>
+        <button
+          type="button"
+          onClick={async () => {
+            await logout();
+            navigate('/auth');
+          }}
+        >
+          <FiLogOut /> {translate('logout')}
+        </button>
+      </motion.article>
+    </section>
+  );
+}

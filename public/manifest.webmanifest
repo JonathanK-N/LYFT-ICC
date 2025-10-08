@@ -1,0 +1,26 @@
+﻿{
+  "name": "Lyft-ICC",
+  "short_name": "Lyft-ICC",
+  "start_url": "/home",
+  "background_color": "#E2ECFF",
+  "theme_color": "#66A7FF",
+  "description": "Covoiturage Impact Centre Chretien",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,527 @@
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import {
+  FiCamera,
+  FiCheck,
+  FiChevronRight,
+  FiKey,
+  FiLock,
+  FiMail,
+  FiPhone,
+  FiShield,
+  FiUser,
+  FiZap,
+} from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { useAppState } from '../contexts/AppStateContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTheme } from '../contexts/ThemeContext';
+import '../pages/styles/AuthPage.css';
+
+interface VehicleForm {
+  make: string;
+  model: string;
+  color: string;
+  plate: string;
+  seats: number;
+}
+
+interface FormState {
+  name: string;
+  emailOrPhone: string;
+  photo: string;
+  code: string;
+  qr: string;
+  language: 'fr' | 'en';
+  password: string;
+  confirm: string;
+  vehicle: VehicleForm;
+}
+
+const fadeUp = {
+  hidden: { opacity: 0, translateY: 24 },
+  visible: (index = 1) => ({
+    opacity: 1,
+    translateY: 0,
+    transition: { duration: 0.4, delay: 0.08 * index, ease: 'easeOut' },
+  }),
+};
+
+export default function AuthPage() {
+  const { verifyMembership, registerMember, login, upgradeToDriver } =
+    useAppState();
+  const { translate } = useLanguage();
+  const { voiceEnabled } = useTheme();
+  const navigate = useNavigate();
+
+  const [verifStatus, setVerifStatus] = useState<'idle' | 'success' | 'error'>(
+    'idle',
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [identifier, setIdentifier] = useState('');
+  const [vehicleMode, setVehicleMode] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
+  const [form, setForm] = useState<FormState>({
+    name: '',
+    emailOrPhone: '',
+    photo: '',
+    code: '',
+    qr: '',
+    language: 'fr',
+    password: '',
+    confirm: '',
+    vehicle: {
+      make: '',
+      model: '',
+      color: '',
+      plate: '',
+      seats: 3,
+    },
+  });
+
+  const speak = (message: string) => {
+    if (!voiceEnabled || typeof window === 'undefined') return;
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = form.language === 'fr' ? 'fr-FR' : 'en-US';
+    synth.speak(utterance);
+  };
+
+  const emailOrPhonePlaceholder = useMemo(
+    () =>
+      form.language === 'fr'
+        ? 'esther@example.com / +33...'
+        : 'esther@example.com / +1...',
+    [form.language],
+  );
+
+  const handleVerify = () => {
+    const isValid = verifyMembership(form.code, form.qr);
+    setVerifStatus(isValid ? 'success' : 'error');
+    speak(
+      isValid
+        ? translate('verification_success')
+        : translate('verification_failed'),
+    );
+  };
+
+  const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+
+    if (!form.name.trim()) {
+      setError('Merci de renseigner votre nom complet.');
+      return;
+    }
+    if (!form.code && !form.qr) {
+      setError("Veuillez saisir un code ou QR fourni par l'eglise.");
+      return;
+    }
+
+    if (form.password && form.password.length < 6) {
+      setError('Mot de passe trop court (6 caracteres minimum).');
+      return;
+    }
+    if (form.password !== form.confirm) {
+      setError('Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    const { name, emailOrPhone, photo, code, qr, language, vehicle, password } =
+      form;
+    const payload = {
+      name,
+      language,
+      avatar: photo || undefined,
+      email: emailOrPhone.includes('@') ? emailOrPhone : undefined,
+      phone:
+        !emailOrPhone.includes('@') && emailOrPhone.trim()
+          ? emailOrPhone
+          : undefined,
+      code: code || undefined,
+      qrToken: qr || undefined,
+      password: password || undefined,
+    };
+
+    let member;
+    try {
+      member = await registerMember(payload);
+    } catch (err) {
+      console.error('[auth] register error', err);
+      setError('Inscription impossible. Verifiez vos informations.');
+      return;
+    }
+    if (!member) {
+      setError(translate('verification_failed'));
+      speak(translate('verification_failed'));
+      return;
+    }
+
+    if (vehicleMode) {
+      await upgradeToDriver({
+        ...vehicle,
+        seats: Number(vehicle.seats) || 3,
+      });
+    }
+
+    speak(`${translate('verification_success')} ${translate('dashboard')}`);
+    navigate('/home');
+  };
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    if (!identifier.trim()) {
+      setError('Merci de saisir votre email, telephone ou nom.');
+      return;
+    }
+    let member;
+    try {
+      member = await login({ identifier, password: loginPassword });
+    } catch (err) {
+      console.error('[auth] login error', err);
+      setError('Connexion impossible. Verifiez vos identifiants.');
+      return;
+    }
+    if (!member) {
+      setError('Aucun membre trouve, merci de verifier vos informations.');
+      speak('Aucun compte trouve. Reessayez ou inscrivez-vous.');
+      return;
+    }
+    speak(`Bienvenue ${member.name}`);
+    setLoginPassword('');
+    navigate('/home');
+  };
+
+  return (
+    <section className="auth-screen">
+      <motion.article
+        className="panel auth-hero"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+      >
+        <div>
+          <span className="tag">Impact Centre Chretien</span>
+          <h1>Rejoignez la famille ICC</h1>
+          <p>
+            Lycee, travail, evenements: organisez vos trajets avec une
+            experience inspiree d'Uber, mais concue pour la communaute.
+          </p>
+        </div>
+        <ul className="auth-benefits">
+          <li>
+            <FiShield /> Acces securise via code ou QR officiel ICC.
+          </li>
+          <li>
+            <FiZap /> Experience passager et conducteur, matching instantane.
+          </li>
+          <li>
+            <FiMail /> Notifications fraternelles et rappel des evenements.
+          </li>
+        </ul>
+        <div className="auth-hero__footer">
+          <p>
+            Logos: depose icc-logo.png et icc-logo-alt.png dans
+            public/branding/. Configure Firebase et Mapbox pour activer les
+            donnees temps reel.
+          </p>
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel auth-card"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={2}
+      >
+        <header className="auth-card__header">
+          <div>
+            <p className="eyebrow">Inscription</p>
+            <h2>{translate('register')}</h2>
+          </div>
+          <span className={`status-pill status-${verifStatus}`}>
+            {verifStatus === 'success'
+              ? translate('verification_success')
+              : verifStatus === 'error'
+              ? translate('verification_failed')
+              : 'Code a verifier'}
+          </span>
+        </header>
+
+        <form className="auth-form" onSubmit={handleRegister}>
+          <div className="form-grid two-columns">
+            <div className="form-field">
+              <label htmlFor="name">
+                <FiUser /> {translate('name')}
+              </label>
+              <input
+                id="name"
+                value={form.name}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, name: event.target.value }))
+                }
+                placeholder="Esther Ilunga"
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="contact">
+                <FiMail /> {translate('email_or_phone')}
+              </label>
+              <input
+                id="contact"
+                value={form.emailOrPhone}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    emailOrPhone: event.target.value,
+                  }))
+                }
+                placeholder={emailOrPhonePlaceholder}
+                required
+              />
+            </div>
+          <div className="form-field">
+            <label htmlFor="photo">
+              <FiCamera /> {translate('photo_url')}
+            </label>
+            <input
+              id="photo"
+              value={form.photo}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, photo: event.target.value }))
+              }
+              placeholder="https://"
+            />
+          </div>
+            <div className="form-field">
+              <label htmlFor="password">
+                <FiLock /> Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={form.password}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, password: event.target.value }))
+                }
+                placeholder="Choisissez un mot de passe"
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="confirm">
+                <FiLock /> Confirmer
+              </label>
+              <input
+                id="confirm"
+                type="password"
+                value={form.confirm}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, confirm: event.target.value }))
+                }
+                placeholder="Repetez le mot de passe"
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="language">Langue</label>
+              <select
+                id="language"
+                value={form.language}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    language: event.target.value as FormState['language'],
+                  }))
+                }
+              >
+                <option value="fr">FR</option>
+                <option value="en">EN</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="verification-block">
+            <div className="form-grid two-columns">
+              <div className="form-field">
+                <label htmlFor="code">
+                  <FiKey /> {translate('membership_code')}
+                </label>
+                <input
+                  id="code"
+                  value={form.code}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, code: event.target.value }))
+                  }
+                  placeholder="ICC-2025"
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="qr">
+                  <FiKey /> {translate('qr_token')}
+                </label>
+                <input
+                  id="qr"
+                  value={form.qr}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, qr: event.target.value }))
+                  }
+                  placeholder="QR-ICC-..."
+                />
+              </div>
+            </div>
+            <button type="button" className="ghost" onClick={handleVerify}>
+              Verifier le code ICC
+            </button>
+          </div>
+
+          <div className="driver-upgrade">
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={vehicleMode}
+                onChange={(event) => setVehicleMode(event.target.checked)}
+              />
+              <span>{translate('upgrade_driver')}</span>
+            </label>
+            {vehicleMode && (
+              <div className="form-grid two-columns">
+                <div className="form-field">
+                  <label htmlFor="make">{translate('vehicle_make')}</label>
+                  <input
+                    id="make"
+                    value={form.vehicle.make}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicle: { ...prev.vehicle, make: event.target.value },
+                      }))
+                    }
+                    placeholder="Toyota"
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="model">{translate('vehicle_model')}</label>
+                  <input
+                    id="model"
+                    value={form.vehicle.model}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicle: { ...prev.vehicle, model: event.target.value },
+                      }))
+                    }
+                    placeholder="Prius"
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="color">{translate('vehicle_color')}</label>
+                  <input
+                    id="color"
+                    value={form.vehicle.color}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicle: { ...prev.vehicle, color: event.target.value },
+                      }))
+                    }
+                    placeholder="Bleu"
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="plate">{translate('vehicle_plate')}</label>
+                  <input
+                    id="plate"
+                    value={form.vehicle.plate}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicle: { ...prev.vehicle, plate: event.target.value },
+                      }))
+                    }
+                    placeholder="ICC-123"
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="seats">
+                    {translate('available_seats')}
+                  </label>
+                  <input
+                    id="seats"
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={form.vehicle.seats}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicle: {
+                          ...prev.vehicle,
+                          seats: Number(event.target.value),
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error ? <p className="auth-error">{error}</p> : null}
+
+          <button type="submit" className="cta">
+            <span>{translate('register')}</span>
+            <FiChevronRight />
+          </button>
+        </form>
+      </motion.article>
+
+      <motion.article
+        className="panel auth-card"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={3}
+      >
+        <header className="auth-card__header">
+          <div>
+            <p className="eyebrow">Connexion</p>
+            <h2>{translate('login')}</h2>
+          </div>
+        </header>
+        <form className="auth-form" onSubmit={handleLogin}>
+          <div className="form-field">
+            <label htmlFor="identifier">
+              <FiUser /> {translate('email_or_phone')}
+            </label>
+            <input
+              id="identifier"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder={emailOrPhonePlaceholder}
+            />
+          </div>
+            <div className="form-field">
+              <label htmlFor="login-password">
+                <FiLock /> Mot de passe
+              </label>
+              <input
+                id="login-password"
+                type="password"
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="Mot de passe"
+              />
+            </div>
+          <button type="submit" className="cta ghost">
+            <span>{translate('login')}</span>
+            <FiChevronRight />
+          </button>
+        </form>
+      </motion.article>
+    </section>
+  );
+}

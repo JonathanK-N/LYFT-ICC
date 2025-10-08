@@ -1,0 +1,155 @@
+.profile-screen {
+  display: grid;
+  gap: 1.4rem;
+  padding-bottom: 1rem;
+}
+
+.profile-hero {
+  display: grid;
+  gap: 1.2rem;
+  background: linear-gradient(
+    160deg,
+    rgba(4, 12, 24, 0.92) 0%,
+    rgba(3, 21, 44, 0.88) 55%,
+    rgba(3, 7, 18, 0.95) 100%
+  );
+  border: 1px solid rgba(112, 224, 255, 0.2);
+}
+
+.profile-hero__top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 26px;
+  overflow: hidden;
+  background: rgba(8, 12, 24, 0.7);
+  box-shadow: 0 22px 50px rgba(3, 21, 44, 0.45);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-identity h1 {
+  margin: 0;
+  font-family: var(--icc-font-display);
+  font-size: clamp(1.5rem, 5vw, 1.9rem);
+}
+
+.profile-identity p {
+  margin: 0;
+  color: rgba(194, 210, 230, 0.78);
+}
+
+.profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.profile-tags .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: rgba(112, 224, 255, 0.15);
+  border: 1px solid rgba(112, 224, 255, 0.25);
+  font-size: 0.78rem;
+  color: rgba(210, 226, 245, 0.85);
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.9rem;
+}
+
+.profile-stats div {
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(5, 12, 22, 0.75);
+  border: 1px solid rgba(112, 224, 255, 0.18);
+}
+
+.profile-stats span {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(188, 205, 228, 0.62);
+  margin-bottom: 0.35rem;
+}
+
+.profile-stats strong {
+  font-size: 1.4rem;
+}
+
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(243, 201, 105, 0.22);
+  border: 1px solid rgba(243, 201, 105, 0.32);
+  color: #1f1402;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.profile-actions {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.profile-actions button {
+  width: 100%;
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  background: rgba(6, 12, 22, 0.82);
+  border: 1px solid rgba(112, 224, 255, 0.18);
+  color: rgba(210, 226, 245, 0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.profile-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .profile-hero__top {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .profile-hero__top > .secondary {
+    justify-self: stretch;
+  }
+}

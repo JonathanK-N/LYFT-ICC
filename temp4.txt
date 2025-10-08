@@ -1,0 +1,228 @@
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import {
+  FiActivity,
+  FiAlertCircle,
+  FiBarChart2,
+  FiMail,
+  FiSend,
+  FiUsers,
+} from 'react-icons/fi';
+import { useAppState } from '../contexts/AppStateContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import '../pages/styles/AdminDashboard.css';
+
+const fadeUp = {
+  hidden: { opacity: 0, translateY: 24 },
+  visible: (index = 1) => ({
+    opacity: 1,
+    translateY: 0,
+    transition: { duration: 0.4, delay: 0.08 * index, ease: 'easeOut' },
+  }),
+};
+
+export default function AdminDashboard() {
+  const {
+    currentUser,
+    members,
+    rides,
+    adminStats,
+    sendAnnouncement,
+    notifications,
+  } = useAppState();
+  const { translate } = useLanguage();
+  const [message, setMessage] = useState('');
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return null;
+  }
+
+  const topMembers = useMemo(() => members.slice(0, 6), [members]);
+  const recentRides = useMemo(() => rides.slice(0, 6), [rides]);
+  const recentNotifications = useMemo(
+    () => notifications.slice(0, 5),
+    [notifications],
+  );
+
+  const handleAnnouncement = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    await sendAnnouncement(message);
+    setMessage('');
+  };
+
+  return (
+    <section className="admin-screen">
+      <motion.article
+        className="panel admin-hero"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiBarChart2 /> {translate('admin_portal')}
+            </p>
+            <p className="subtitle">
+              Statistiques cles et surveillance en direct de la communaute ICC.
+            </p>
+          </div>
+        </header>
+        <div className="admin-metrics">
+          <div>
+            <span>{translate('members')}</span>
+            <strong>{adminStats.totalMembers}</strong>
+          </div>
+          <div>
+            <span>{translate('rides')}</span>
+            <strong>{adminStats.totalRides}</strong>
+          </div>
+          <div>
+            <span>Rides semaine</span>
+            <strong>{adminStats.ridesThisWeek}</strong>
+          </div>
+          <div>
+            <span>Actifs semaine</span>
+            <strong>{adminStats.activeThisWeek}</strong>
+          </div>
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-members"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={2}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiUsers /> {translate('members')}
+            </p>
+            <p className="subtitle">Derniers profils verifies.</p>
+          </div>
+        </header>
+        <div className="admin-table">
+          {topMembers.map((member) => (
+            <div key={member.id} className="admin-row">
+              <span className="avatar">
+                {member.avatar ? (
+                  <img src={member.avatar} alt={member.name} />
+                ) : (
+                  member.name[0]
+                )}
+              </span>
+              <div className="cell main">
+                <strong>{member.name}</strong>
+                <small>
+                  {member.role} | {member.language.toUpperCase()}
+                </small>
+              </div>
+              <span
+                className={`status-pill ${member.verified ? 'online' : 'offline'}`}
+              >
+                {member.verified ? 'Verifie' : 'En attente'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-rides"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={3}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiActivity /> {translate('rides')}
+            </p>
+            <p className="subtitle">Surveillez les trajets recents.</p>
+          </div>
+        </header>
+        <div className="admin-table">
+          {recentRides.map((ride) => (
+            <div key={ride.id} className="admin-row">
+              <div className="cell main">
+                <strong>{ride.driverName}</strong>
+                <small>
+                  {ride.origin}
+                  {' -> '}
+                  {ride.destination}
+                </small>
+              </div>
+              <span className={`status-pill status-${ride.status}`}>
+                {ride.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-announcement"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={4}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiMail /> {translate('announcements')}
+            </p>
+            <p className="subtitle">
+              Diffusez un message a tous les membres verifies.
+            </p>
+          </div>
+        </header>
+        <form className="form-grid" onSubmit={handleAnnouncement}>
+          <div className="form-field">
+            <label htmlFor="announcement">
+              {translate('message_placeholder')}
+            </label>
+            <textarea
+              id="announcement"
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="Annoncez une celebration, une urgence ou un remerciement."
+            />
+          </div>
+          <button type="submit" className="cta">
+            <FiSend /> {translate('send_announcement')}
+          </button>
+        </form>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-moderation"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={5}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiAlertCircle /> Moderation
+            </p>
+            <p className="subtitle">
+              Derniers messages ou alertes a surveiller.
+            </p>
+          </div>
+        </header>
+        <ul className="admin-feed">
+          {recentNotifications.map((notification) => (
+            <li key={notification.id}>{notification.message}</li>
+          ))}
+        </ul>
+      </motion.article>
+    </section>
+  );
+}

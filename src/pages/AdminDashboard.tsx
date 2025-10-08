@@ -1,0 +1,299 @@
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
+import {
+  FiActivity,
+  FiAlertCircle,
+  FiBarChart2,
+  FiMail,
+  FiSend,
+  FiUsers,
+} from 'react-icons/fi';
+import { useAppState } from '../contexts/AppStateContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import '../pages/styles/AdminDashboard.css';
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (index = 1) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      delay: 0.08 * index,
+      ease: 'easeOut' as const,
+    },
+  }),
+};
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      delayChildren: 0.12,
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const staggerItem: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: 'easeOut' as const,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: 10,
+    transition: {
+      duration: 0.2,
+      ease: 'easeIn' as const,
+    },
+  },
+};
+
+export default function AdminDashboard() {
+  const {
+    currentUser,
+    members,
+    rides,
+    adminStats,
+    sendAnnouncement,
+    notifications,
+  } = useAppState();
+  const { translate } = useLanguage();
+  const [message, setMessage] = useState('');
+
+  const topMembers = useMemo(() => members.slice(0, 6), [members]);
+  const recentRides = useMemo(() => rides.slice(0, 6), [rides]);
+  const recentNotifications = useMemo(
+    () => notifications.slice(0, 5),
+    [notifications],
+  );
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return null;
+  }
+
+  const handleAnnouncement = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    await sendAnnouncement(message);
+    setMessage('');
+  };
+
+  return (
+    <section className="admin-screen">
+      <motion.article
+        className="panel admin-hero"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiBarChart2 /> {translate('admin_portal')}
+            </p>
+            <p className="subtitle">
+              Statistiques cles et surveillance en direct de la communaute ICC.
+            </p>
+          </div>
+        </header>
+        <motion.div
+          className="admin-metrics"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          {[
+            { label: translate('members'), value: adminStats.totalMembers },
+            { label: translate('rides'), value: adminStats.totalRides },
+            { label: 'Rides semaine', value: adminStats.ridesThisWeek },
+            { label: 'Actifs semaine', value: adminStats.activeThisWeek },
+          ].map((metric) => (
+            <motion.div key={metric.label} variants={staggerItem}>
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-members"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={2}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiUsers /> {translate('members')}
+            </p>
+            <p className="subtitle">Derniers profils verifies.</p>
+          </div>
+        </header>
+        <motion.div
+          className="admin-table"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          {topMembers.map((member) => (
+            <motion.div
+              key={member.id}
+              className="admin-row"
+              variants={staggerItem}
+              whileHover={{ translateY: -3 }}
+            >
+              <span className="avatar">
+                {member.avatar ? (
+                  <img src={member.avatar} alt={member.name} />
+                ) : (
+                  member.name[0]
+                )}
+              </span>
+              <div className="cell main">
+                <strong>{member.name}</strong>
+                <small>
+                  {member.role} | {member.language.toUpperCase()}
+                </small>
+              </div>
+              <span
+                className={`status-pill ${member.verified ? 'online' : 'offline'}`}
+              >
+                {member.verified ? 'Verifie' : 'En attente'}
+              </span>
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-rides"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={3}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiActivity /> {translate('rides')}
+            </p>
+            <p className="subtitle">Surveillez les trajets recents.</p>
+          </div>
+        </header>
+        <motion.div
+          className="admin-table"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          {recentRides.map((ride) => (
+            <motion.div
+              key={ride.id}
+              className="admin-row"
+              variants={staggerItem}
+              whileHover={{ translateY: -3 }}
+            >
+              <div className="cell main">
+                <strong>{ride.driverName}</strong>
+                <small>
+                  {ride.origin}
+                  {' -> '}
+                  {ride.destination}
+                </small>
+              </div>
+              <span className={`status-pill status-${ride.status}`}>
+                {ride.status}
+              </span>
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-announcement"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={4}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiMail /> {translate('announcements')}
+            </p>
+            <p className="subtitle">
+              Diffusez un message a tous les membres verifies.
+            </p>
+          </div>
+        </header>
+        <form className="form-grid" onSubmit={handleAnnouncement}>
+          <div className="form-field">
+            <label htmlFor="announcement">
+              {translate('message_placeholder')}
+            </label>
+            <textarea
+              id="announcement"
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="Annoncez une celebration, une urgence ou un remerciement."
+            />
+          </div>
+          <motion.button
+            type="submit"
+            className="cta"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <FiSend /> {translate('send_announcement')}
+          </motion.button>
+        </form>
+      </motion.article>
+
+      <motion.article
+        className="panel admin-moderation"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={5}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiAlertCircle /> Moderation
+            </p>
+            <p className="subtitle">
+              Derniers messages ou alertes a surveiller.
+            </p>
+          </div>
+        </header>
+        <ul className="admin-feed">
+          <AnimatePresence initial={false}>
+            {recentNotifications.map((notification) => (
+              <motion.li
+                key={notification.id}
+                variants={staggerItem}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                {notification.message}
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      </motion.article>
+    </section>
+  );
+}

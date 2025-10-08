@@ -1,0 +1,245 @@
+import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  FiCalendar,
+  FiClock,
+  FiFilter,
+  FiHeart,
+  FiMapPin,
+  FiSearch,
+  FiShare2,
+} from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { useAppState } from '../contexts/AppStateContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import '../pages/styles/EventsPage.css';
+
+type EventFilter =
+  | 'all'
+  | 'messe'
+  | 'priere'
+  | 'conference'
+  | 'jeunesse'
+  | 'special';
+
+const fadeUp = {
+  hidden: { opacity: 0, translateY: 24 },
+  visible: (index = 1) => ({
+    opacity: 1,
+    translateY: 0,
+    transition: { duration: 0.4, delay: 0.08 * index, ease: 'easeOut' },
+  }),
+};
+
+export default function EventsPage() {
+  const { events, rides } = useAppState();
+  const { translate } = useLanguage();
+  const [filter, setFilter] = useState<EventFilter>('all');
+  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
+
+  const filtered = useMemo(() => {
+    return events
+      .filter((event) => (filter === 'all' ? true : event.category === filter))
+      .filter((event) =>
+        query
+          ? event.title.toLowerCase().includes(query.toLowerCase()) ||
+            event.location.toLowerCase().includes(query.toLowerCase())
+          : true,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      );
+  }, [events, filter, query]);
+
+  const suggestions = useMemo(
+    () =>
+      filtered.map((event) => ({
+        event,
+        rides: rides.filter((ride) => ride.eventId === event.id),
+      })),
+    [filtered, rides],
+  );
+
+  return (
+    <section className="events-screen">
+      <motion.article
+        className="panel events-hero"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="events-hero__meta">
+          <span className="tag">Agenda ICC</span>
+          <h1>
+            Celebrations, reunions et priere en un seul calendrier inspire de
+            Lyft.
+          </h1>
+          <p>
+            Synchronise avec la vision Impact Centre Chretien: retrouvez les
+            messes, veilles, conferences et sorties jeunesse. Chaque evenement
+            peut proposer un trajet dedie.
+          </p>
+        </div>
+        <div className="events-hero__stats">
+          <div>
+            <span>Evenements</span>
+            <strong>{events.length}</strong>
+          </div>
+          <div>
+            <span>Rides lies</span>
+            <strong>
+              {rides.filter((ride) => Boolean(ride.eventId)).length}
+            </strong>
+          </div>
+          <div>
+            <span>Categories</span>
+            <strong>5</strong>
+          </div>
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel events-filters"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={2}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">Recherche</p>
+            <p className="subtitle">
+              Filtrez par categorie et trouvez les rides en un clic.
+            </p>
+          </div>
+        </header>
+        <div className="events-search">
+          <div className="input-group">
+            <FiSearch />
+            <input
+              id="query"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Messe, jeunesse, priere..."
+            />
+          </div>
+          <button type="button" className="filter-btn">
+            <FiFilter />
+          </button>
+        </div>
+        <div className="filter-chips">
+          {[
+            { key: 'all', label: 'Tout' },
+            { key: 'messe', label: 'Messes' },
+            { key: 'priere', label: 'Priere' },
+            { key: 'jeunesse', label: 'Jeunesse' },
+            { key: 'conference', label: 'Conferences' },
+            { key: 'special', label: 'Speciaux' },
+          ].map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`chip-button ${filter === item.key ? 'active' : ''}`}
+              onClick={() => setFilter(item.key as EventFilter)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </motion.article>
+
+      <motion.article
+        className="panel events-list"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={3}
+      >
+        <header className="panel-header">
+          <div>
+            <p className="title">
+              <FiCalendar /> {translate('events')}
+            </p>
+            <p className="subtitle">
+              {translate('suggestions_from_calendar')}
+            </p>
+          </div>
+        </header>
+        <div className="events-grid">
+          {suggestions.length === 0 && (
+            <div className="empty-state">Aucun evenement pour le moment.</div>
+          )}
+          {suggestions.map(({ event, rides: eventRides }, index) => (
+            <motion.article
+              key={event.id}
+              className="event-card"
+              whileHover={{ translateY: -4 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+              custom={index}
+            >
+              <div className="event-card__header">
+                <span className="event-icon">{event.icon}</span>
+                <div>
+                  <h3>{event.title}</h3>
+                  <p>
+                    <FiClock />{' '}
+                    {new Date(event.startTime).toLocaleString(undefined, {
+                      weekday: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
+              <p className="event-desc">{event.description}</p>
+              <p className="event-location">
+                <FiMapPin /> {event.location}
+              </p>
+              <div className="event-actions">
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate('/map', { state: { eventId: event.id } })
+                  }
+                >
+                  {translate('search_rides')}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => window.open('https://donate.stripe.com', '_blank')}
+                >
+                  <FiHeart /> {translate('donation_link')}
+                </button>
+              </div>
+              <div className="event-rides">
+                {eventRides.length === 0 ? (
+                  <small>
+                    Aucun trajet encore planifie. Soyez le premier conducteur.
+                  </small>
+                ) : (
+                  eventRides.map((ride) => (
+                    <div key={ride.id} className="ride-chip">
+                      <strong>{ride.driverName}</strong>
+                    <span>
+                      {ride.origin}
+                      {' -> '}
+                      {ride.destination}
+                    </span>
+                      <small>
+                        {new Date(ride.departureTime).toLocaleTimeString()} ·{' '}
+                        {ride.seatsAvailable - ride.seatsBooked} places
+                      </small>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </motion.article>
+    </section>
+  );
+}
