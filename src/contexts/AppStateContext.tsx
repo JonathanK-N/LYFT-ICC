@@ -131,7 +131,7 @@ const mapRideEntityToRide = (entity: RideEntity): Ride => {
     destination: entity.destination.address,
     departureTime: entity.departureTime instanceof Date
       ? entity.departureTime.toISOString()
-      : entity.departureTime.toDate().toISOString(),
+      : (entity.departureTime as any)?.toDate ? (entity.departureTime as any).toDate().toISOString() : new Date().toISOString(),
     seatsAvailable: entity.seatsAvailable,
     seatsBooked: entity.seatsBooked,
     status,
@@ -148,7 +148,7 @@ const mapEventEntityToEvent = (entity: EventEntity) => ({
   startTime:
     entity.startTime instanceof Date
       ? entity.startTime.toISOString()
-      : entity.startTime.toDate().toISOString(),
+      : (entity.startTime as any)?.toDate ? (entity.startTime as any).toDate().toISOString() : new Date().toISOString(),
   location: entity.location.address,
   category: entity.category,
   icon: entity.icon,
@@ -169,7 +169,7 @@ const mapRideRequestEntity = (entity: RideRequestEntity): RideRequest => ({
   createdAt:
     entity.createdAt instanceof Date
       ? entity.createdAt.toISOString()
-      : entity.createdAt.toDate().toISOString(),
+      : (entity.createdAt as any)?.toDate ? (entity.createdAt as any).toDate().toISOString() : new Date().toISOString(),
   message: entity.message,
 });
 
@@ -316,7 +316,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     let unsubscribe: (() => void) | undefined;
     let mounted = true;
-    listenForegroundMessages((payload) => {
+    const result = listenForegroundMessages((payload: any) => {
       const messageId = payload?.messageId ?? `fcm-${Date.now()}`;
       const body =
         payload?.notification?.body ??
@@ -334,15 +334,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         },
         ...prev,
       ]);
-    })
-      .then((stop) => {
-        if (mounted) {
-          unsubscribe = stop;
-        }
-      })
-      .catch((error) => {
-        console.warn('[messaging] foreground listener failed', error);
-      });
+    });
+    if (result && typeof result.then === 'function') {
+      result
+        .then((stop: any) => {
+          if (mounted) {
+            unsubscribe = stop;
+          }
+        })
+        .catch((error: any) => {
+          console.warn('[messaging] foreground listener failed', error);
+        });
+    }
     return () => {
       mounted = false;
       if (unsubscribe) {

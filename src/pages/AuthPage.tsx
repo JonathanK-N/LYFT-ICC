@@ -7,9 +7,7 @@ import {
   FiChevronRight,
   FiLock,
   FiMail,
-  FiShield,
   FiUser,
-  FiZap,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
@@ -49,36 +47,7 @@ const fadeUp: Variants = {
   }),
 };
 
-const listContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      delayChildren: 0.12,
-      staggerChildren: 0.08,
-    },
-  },
-};
 
-const listItem: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.35,
-      ease: 'easeOut' as const,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: 12,
-    transition: {
-      duration: 0.2,
-      ease: 'easeIn' as const,
-    },
-  },
-};
 
 const blockFade: Variants = {
   hidden: { opacity: 0, y: 16 },

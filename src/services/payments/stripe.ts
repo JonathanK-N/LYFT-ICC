@@ -34,18 +34,17 @@ export async function redirectToDonation() {
         ? cancelUrl
         : `${window.location.origin}/?donation=cancelled`;
 
-    const { error } = await stripe.redirectToCheckout({
+    try {
+      await (stripe as any).redirectToCheckout({
       lineItems: [{ price: stripePriceId, quantity: 1 }],
       mode: 'payment',
       successUrl: resolvedSuccess,
       cancelUrl: resolvedCancel,
-    });
-
-    if (!error) {
+      });
       return;
+    } catch (error) {
+      console.warn('[stripe] redirectToCheckout failed', error);
     }
-
-    console.warn('[stripe] redirectToCheckout failed', error);
   }
 
   window.open(url, '_blank', 'noopener');
