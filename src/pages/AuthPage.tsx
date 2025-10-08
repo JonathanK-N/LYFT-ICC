@@ -1,4 +1,5 @@
-import { ChangeEvent, FormEvent, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { FiImage, FiLock, FiMail, FiPhone, FiUser } from 'react-icons/fi';
 import { useAppState } from '../contexts/AppStateContext';
