@@ -372,19 +372,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [members, rides]);
 
   const verifyMembership = (code?: string, qrToken?: string) => {
-    const codeValid = code
-      ? verificationCodes.some((item) => item.code === code.trim())
-      : false;
-    const qrValid = qrToken
-      ? acceptedQrTokens.includes(qrToken.trim())
-      : false;
-    return codeValid || qrValid;
+    // Inscription libre - plus de vérification de code requis
+    return true;
   };
 
   const registerMember = async (payload: RegisterPayload) => {
-    if (!verifyMembership(payload.code, payload.qrToken)) {
-      return undefined;
-    }
+    // Inscription libre - pas de vérification de code nécessaire
 
     if (firebaseEnabled && payload.email && payload.password) {
       const language = payload.language ?? 'fr';

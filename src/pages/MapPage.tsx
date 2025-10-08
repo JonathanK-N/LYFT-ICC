@@ -1,297 +1,305 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiCalendar,
-  FiClock,
-  FiFilter,
   FiMapPin,
-  FiNavigation,
   FiSearch,
-  FiUsers,
+  FiUser,
+  FiClock,
+  FiStar,
+  FiNavigation,
+  FiPhone,
+  FiMessageCircle,
+  FiX,
+  FiMenu,
 } from 'react-icons/fi';
-import { useLocation } from 'react-router-dom';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { createMapboxMap } from '../lib/map/mapbox';
 import { useAppState } from '../contexts/AppStateContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useUIStore } from '../modules/app/ui.store';
 import '../pages/styles/MapPage.css';
 
-const sheetVariants = {
-  hidden: { translateY: 320 },
-  visible: {
-    translateY: 0,
-    transition: { type: 'spring', stiffness: 160, damping: 22 },
-  },
-  exit: { translateY: 360, transition: { duration: 0.2, ease: 'easeIn' } },
-};
-
 export default function MapPage() {
-  const { rides, events, rideRequests, currentUser } = useAppState();
-  const { translate } = useLanguage();
-  const locationState = useLocation().state as
-    | { rideId?: string; mode?: 'driver' | 'passenger' }
-    | undefined;
+  const { rides, currentUser } = useAppState();
+  const [mode, setMode] = useState<'passenger' | 'driver'>('passenger');
+  const [selectedRide, setSelectedRide] = useState<string | null>(null);
+  const [showRideDetails, setShowRideDetails] = useState(false);
+  const [pickup, setPickup] = useState('');
+  const [destination, setDestination] = useState('');
+  const mapRef = useRef<HTMLDivElement>(null);
 
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'driver' | 'passenger'>(
-    locationState?.mode ?? 'passenger',
-  );
-  const [query, setQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [selectedRideId, setSelectedRideId] = useState<string | undefined>(
-    locationState?.rideId,
-  );
-
-  const { setRideSheet } = useUIStore((state) => ({
-    setRideSheet: state.setRideSheet,
-  }));
-
+  // Simuler une carte interactive
   useEffect(() => {
-    if (!mapContainerRef.current) {
-      return;
-    }
-    try {
-      const instance = createMapboxMap(mapContainerRef.current, {
-        zoom: 12.5,
-        center: [2.3452, 48.8534],
-        pitch: 55,
+    if (mapRef.current) {
+      // Créer des marqueurs simulés
+      const markers = document.querySelectorAll('.map-marker');
+      markers.forEach(marker => marker.remove());
+      
+      // Ajouter des marqueurs pour les trajets
+      rides.slice(0, 5).forEach((ride, index) => {
+        const marker = document.createElement('div');
+        marker.className = 'map-marker';
+        marker.style.left = `${20 + index * 15}%`;
+        marker.style.top = `${30 + index * 10}%`;
+        marker.innerHTML = '🚗';
+        marker.onclick = () => {
+          setSelectedRide(ride.id);
+          setShowRideDetails(true);
+        };
+        mapRef.current?.appendChild(marker);
       });
-      setMapReady(true);
-      return () => instance.cleanup();
-    } catch (error) {
-      console.warn('[map] fallback placeholder', error);
-      setMapError('Carte indisponible pour le moment.');
     }
-  }, []);
+  }, [rides]);
 
-useEffect(() => {
-  if (selectedRideId) {
-    setRideSheet(true, selectedRideId);
-  } else {
-    setRideSheet(false);
-  }
-}, [selectedRideId, setRideSheet]);
-
-useEffect(() => () => setRideSheet(false), [setRideSheet]);
-
-  const filteredRides = useMemo(() => {
-    return rides.filter((ride) => {
-      const matchesQuery = query
-        ? `${ride.origin} ${ride.destination}`
-            .toLowerCase()
-            .includes(query.toLowerCase())
-        : true;
-      const matchesDate = dateFilter
-        ? ride.departureTime.slice(0, 10) === dateFilter
-        : true;
-      if (mode === 'driver' && currentUser) {
-        return matchesQuery && matchesDate && ride.driverId === currentUser.id;
-      }
-      return matchesQuery && matchesDate;
-    });
-  }, [rides, query, dateFilter, mode, currentUser]);
-
-  const selectedRide = selectedRideId
-    ? rides.find((ride) => ride.id === selectedRideId)
-    : undefined;
-
-  const eventSuggestions = events.slice(0, 4);
-  const pendingForDriver =
-    currentUser && mode === 'driver'
-      ? rideRequests.filter(
-          (request) =>
-            request.status === 'pending' &&
-            rides.some(
-              (ride) =>
-                ride.id === request.rideId && ride.driverId === currentUser.id,
-            ),
-        )
-      : [];
+  const currentRide = selectedRide ? rides.find(r => r.id === selectedRide) : null;
 
   return (
-    <section className="map-screen">
-      <div className="map-overlay">
-        <header className="map-toolbar">
-          <div className="map-toolbar__title">
-            <span className="eyebrow">Lyft-ICC</span>
-            <h1>Carte communautaire</h1>
+    <div className="uber-map-container">
+      {/* Header */}
+      <div className="uber-header">
+        <button className="menu-btn">
+          <FiMenu />
+        </button>
+        <div className="location-info">
+          <div className="current-location">
+            <FiMapPin />
+            <span>Paris, France</span>
           </div>
-          <div className="mode-toggle">
-            <button
-              type="button"
-              className={mode === 'passenger' ? 'active' : ''}
-              onClick={() => setMode('passenger')}
-            >
-              Passager
-            </button>
-            <button
-              type="button"
-              className={mode === 'driver' ? 'active' : ''}
-              onClick={() => setMode('driver')}
-            >
-              Conducteur
-              {pendingForDriver.length > 0 ? (
-                <span className="badge">{pendingForDriver.length}</span>
-              ) : null}
-            </button>
-          </div>
-        </header>
-
-        <div className="map-search">
-          <div className="input-group">
-            <FiSearch />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={translate('destination') ?? 'Destination'}
-            />
-          </div>
-          <div className="input-group">
-            <FiCalendar />
-            <input
-              value={dateFilter}
-              onChange={(event) => setDateFilter(event.target.value)}
-              type="date"
-            />
-          </div>
-          <button type="button" className="filter-btn">
-            <FiFilter />
-          </button>
         </div>
-
-        <div className="map-badges">
-          {eventSuggestions.map((event) => (
-            <span key={event.id} className="map-badge">
-              {event.icon} {event.title}
-            </span>
-          ))}
+        <div className="user-avatar">
+          <img 
+            src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${currentUser?.name}&background=000&color=fff`} 
+            alt="Profile" 
+          />
         </div>
       </div>
 
-      <div className="map-canvas" ref={mapContainerRef}>
-        {!mapReady && !mapError && (
-          <div className="map-placeholder">Chargement de la carte...</div>
-        )}
-        {mapError ? <div className="map-error">{mapError}</div> : null}
+      {/* Search Bar */}
+      <div className="uber-search-container">
+        <div className="search-inputs">
+          <div className="search-input-group">
+            <div className="location-dot pickup-dot"></div>
+            <input
+              type="text"
+              placeholder="Lieu de départ"
+              value={pickup}
+              onChange={(e) => setPickup(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          <div className="search-input-group">
+            <div className="location-dot destination-dot"></div>
+            <input
+              type="text"
+              placeholder="Où allez-vous ?"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="search-input"
+            />
+          </div>
+        </div>
+        <button className="search-btn">
+          <FiSearch />
+        </button>
       </div>
 
-      <AnimatePresence>
-        <motion.div
-          className="map-sheet"
-          variants={sheetVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
+      {/* Mode Toggle */}
+      <div className="mode-selector">
+        <button 
+          className={`mode-btn ${mode === 'passenger' ? 'active' : ''}`}
+          onClick={() => setMode('passenger')}
         >
-          <div className="map-sheet__handle" />
-          <div className="map-sheet__header">
-            <div>
-              <p className="title">
-                {mode === 'driver' ? 'Vos trajets' : 'Rides disponibles'}
-              </p>
-              <p className="subtitle">
-                {mode === 'driver'
-                  ? 'Visualisez et suivez les passagers en attentes.'
-                  : 'Choisissez un conducteur pour votre prochain trajet.'}
-              </p>
-            </div>
-            <span className="count">{filteredRides.length}</span>
-          </div>
+          Passager
+        </button>
+        <button 
+          className={`mode-btn ${mode === 'driver' ? 'active' : ''}`}
+          onClick={() => setMode('driver')}
+        >
+          Conducteur
+        </button>
+      </div>
 
-          <div className="map-sheet__list">
-            {filteredRides.map((ride) => (
-              <button
-                type="button"
+      {/* Map */}
+      <div className="uber-map" ref={mapRef}>
+        <div className="map-overlay-pattern"></div>
+        <div className="church-marker">
+          <div className="church-icon">⛪</div>
+          <span>Impact Centre Chrétien</span>
+        </div>
+      </div>
+
+      {/* Bottom Sheet */}
+      <motion.div 
+        className="uber-bottom-sheet"
+        initial={{ y: 300 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      >
+        <div className="sheet-handle"></div>
+        
+        <div className="sheet-header">
+          <h3>{mode === 'passenger' ? 'Trajets disponibles' : 'Vos trajets'}</h3>
+          <span className="ride-count">{rides.length}</span>
+        </div>
+
+        <div className="rides-list">
+          {rides.length === 0 ? (
+            <div className="empty-rides">
+              <div className="empty-icon">🚗</div>
+              <h4>Aucun trajet disponible</h4>
+              <p>Soyez le premier à proposer un trajet vers l'église !</p>
+              <button className="create-ride-btn">
+                Créer un trajet
+              </button>
+            </div>
+          ) : (
+            rides.map((ride) => (
+              <motion.div
                 key={ride.id}
-                className={`map-ride ${
-                  selectedRideId === ride.id ? 'active' : ''
-                }`}
-                onClick={() => setSelectedRideId(ride.id)}
+                className="ride-card"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setSelectedRide(ride.id);
+                  setShowRideDetails(true);
+                }}
               >
-                <div className="map-ride__main">
-                  <div className="map-ride__route">
-                    <span>
-                      <FiNavigation /> {ride.origin}
-                    </span>
-                    <span className="arrow">-&gt;</span>
-                    <span>{ride.destination}</span>
+                <div className="ride-info">
+                  <div className="route">
+                    <div className="route-point">
+                      <div className="route-dot start"></div>
+                      <span>{ride.origin}</span>
+                    </div>
+                    <div className="route-line"></div>
+                    <div className="route-point">
+                      <div className="route-dot end"></div>
+                      <span>{ride.destination}</span>
+                    </div>
                   </div>
-                  <div className="map-ride__meta">
-                    <span>
-                      <FiClock />{' '}
+                  <div className="ride-meta">
+                    <span className="time">
+                      <FiClock />
                       {new Date(ride.departureTime).toLocaleTimeString([], {
                         hour: '2-digit',
-                        minute: '2-digit',
+                        minute: '2-digit'
                       })}
                     </span>
-                    <span className="status">
-                      {ride.seatsAvailable - ride.seatsBooked}/
-                      {ride.seatsAvailable}
+                    <span className="seats">
+                      {ride.seatsAvailable - ride.seatsBooked} places
                     </span>
                   </div>
                 </div>
-                <div className="map-ride__driver">
-                  <span className="avatar">
-                    {ride.driverAvatar ? (
-                      <img src={ride.driverAvatar} alt={ride.driverName} />
-                    ) : (
-                      <FiUsers />
-                    )}
-                  </span>
-                  <div>
-                    <strong>{ride.driverName}</strong>
-                    <small>
-                      {ride.vehicle.make} {ride.vehicle.model}
-                    </small>
+                
+                <div className="driver-info">
+                  <img 
+                    src={ride.driverAvatar || `https://ui-avatars.com/api/?name=${ride.driverName}&background=000&color=fff`}
+                    alt={ride.driverName}
+                    className="driver-avatar"
+                  />
+                  <div className="driver-details">
+                    <span className="driver-name">{ride.driverName}</span>
+                    <div className="driver-rating">
+                      <FiStar />
+                      <span>4.9</span>
+                    </div>
+                    <span className="vehicle">{ride.vehicle.make} {ride.vehicle.model}</span>
                   </div>
                 </div>
-              </button>
-            ))}
-            {filteredRides.length === 0 && (
-              <div className="empty-state">Aucun trajet pour le moment.</div>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {selectedRide && (
-              <motion.div
-                key={selectedRide.id}
-                className="map-sheet__detail"
-                initial={{ opacity: 0, translateY: 20 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                exit={{ opacity: 0, translateY: 20 }}
-              >
-                <div className="detail-header">
-                  <strong>{selectedRide.driverName}</strong>
-                  <span className={`badge status-${selectedRide.status}`}>
-                    {selectedRide.status}
-                  </span>
-                </div>
-                <p>
-                  <FiMapPin /> {selectedRide.origin} -&gt; {selectedRide.destination}
-                </p>
-                <p>
-                  <FiClock />{' '}
-                  {new Date(selectedRide.departureTime).toLocaleString()}
-                </p>
-                {selectedRide.note ? (
-                  <p className="note">“{selectedRide.note}”</p>
-                ) : null}
-                <div className="detail-actions">
-                  <button type="button" className="secondary">
-                    {mode === 'driver'
-                      ? 'Ouvrir la mission'
-                      : translate('reserve')}
-                  </button>
-                </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+            ))
+          )}
+        </div>
+      </motion.div>
+
+      {/* Ride Details Modal */}
+      <AnimatePresence>
+        {showRideDetails && currentRide && (
+          <motion.div
+            className="ride-details-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="modal-content"
+              initial={{ y: 300, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 300, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            >
+              <div className="modal-header">
+                <h3>Détails du trajet</h3>
+                <button 
+                  className="close-btn"
+                  onClick={() => setShowRideDetails(false)}
+                >
+                  <FiX />
+                </button>
+              </div>
+
+              <div className="trip-route">
+                <div className="route-visual">
+                  <div className="route-point">
+                    <div className="route-dot start"></div>
+                    <div className="route-info">
+                      <span className="location">{currentRide.origin}</span>
+                      <span className="time">Départ à {new Date(currentRide.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <div className="route-line-vertical"></div>
+                  <div className="route-point">
+                    <div className="route-dot end"></div>
+                    <div className="route-info">
+                      <span className="location">{currentRide.destination}</span>
+                      <span className="time">Arrivée estimée</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="driver-section">
+                <div className="driver-card">
+                  <img 
+                    src={currentRide.driverAvatar || `https://ui-avatars.com/api/?name=${currentRide.driverName}&background=000&color=fff`}
+                    alt={currentRide.driverName}
+                    className="driver-photo"
+                  />
+                  <div className="driver-info-detailed">
+                    <h4>{currentRide.driverName}</h4>
+                    <div className="rating">
+                      <FiStar />
+                      <span>4.9 (127 trajets)</span>
+                    </div>
+                    <p className="vehicle-info">
+                      {currentRide.vehicle.make} {currentRide.vehicle.model} • {currentRide.vehicle.color}
+                    </p>
+                  </div>
+                  <div className="contact-actions">
+                    <button className="contact-btn">
+                      <FiPhone />
+                    </button>
+                    <button className="contact-btn">
+                      <FiMessageCircle />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {currentRide.notes && (
+                <div className="trip-notes">
+                  <h4>Message du conducteur</h4>
+                  <p>"{currentRide.notes}"</p>
+                </div>
+              )}
+
+              <div className="modal-actions">
+                <button className="secondary-btn">
+                  Partager
+                </button>
+                <button className="primary-btn">
+                  Réserver ce trajet
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
-    </section>
+    </div>
   );
 }

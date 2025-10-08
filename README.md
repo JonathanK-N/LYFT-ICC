@@ -110,7 +110,7 @@ public/
 1. **Sécurité Firebase** : finaliser les règles Firestore/Storage et l’indexation (comprise dans la phase 3).
 2. **Phase 4** : dons Stripe, onboarding vocal, tests unitaires/E2E, QA PWA (Audit Lighthouse), packaging.
 
-Que Dieu benisse chaque trajet partage !
+
 
 ## QA & packaging
 

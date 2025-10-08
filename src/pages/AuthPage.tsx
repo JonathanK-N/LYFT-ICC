@@ -4,9 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import {
   FiCamera,
-  FiCheck,
   FiChevronRight,
-  FiKey,
   FiLock,
   FiMail,
   FiShield,
@@ -17,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { branding } from '../assets/branding';
 import '../pages/styles/AuthPage.css';
 
 interface VehicleForm {
@@ -30,9 +29,7 @@ interface VehicleForm {
 interface FormState {
   name: string;
   emailOrPhone: string;
-  photo: string;
-  code: string;
-  qr: string;
+  photo: File | null;
   language: 'fr' | 'en';
   password: string;
   confirm: string;
@@ -120,9 +117,7 @@ export default function AuthPage() {
   const [form, setForm] = useState<FormState>({
     name: '',
     emailOrPhone: '',
-    photo: '',
-    code: '',
-    qr: '',
+    photo: null,
     language: 'fr',
     password: '',
     confirm: '',
@@ -152,14 +147,11 @@ export default function AuthPage() {
     [form.language],
   );
 
-  const handleVerify = () => {
-    const isValid = verifyMembership(form.code, form.qr);
-    setVerifStatus(isValid ? 'success' : 'error');
-    speak(
-      isValid
-        ? translate('verification_success')
-        : translate('verification_failed'),
-    );
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setForm(prev => ({ ...prev, photo: file }));
+    }
   };
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
@@ -170,10 +162,7 @@ export default function AuthPage() {
       setError('Merci de renseigner votre nom complet.');
       return;
     }
-    if (!form.code && !form.qr) {
-      setError("Veuillez saisir un code ou QR fourni par l'eglise.");
-      return;
-    }
+
 
     if (form.password && form.password.length < 6) {
       setError('Mot de passe trop court (6 caracteres minimum).');
@@ -184,19 +173,23 @@ export default function AuthPage() {
       return;
     }
 
-    const { name, emailOrPhone, photo, code, qr, language, vehicle, password } =
-      form;
+    const { name, emailOrPhone, photo, language, vehicle, password } = form;
+    
+    let avatarUrl = undefined;
+    if (photo) {
+      // Créer une URL temporaire pour l'aperçu
+      avatarUrl = URL.createObjectURL(photo);
+    }
+    
     const payload = {
       name,
       language,
-      avatar: photo || undefined,
+      avatar: avatarUrl,
       email: emailOrPhone.includes('@') ? emailOrPhone : undefined,
       phone:
         !emailOrPhone.includes('@') && emailOrPhone.trim()
           ? emailOrPhone
           : undefined,
-      code: code || undefined,
-      qrToken: qr || undefined,
       password: password || undefined,
     };
 
@@ -251,362 +244,339 @@ export default function AuthPage() {
   };
 
   return (
-    <section className="auth-screen">
-      <motion.article
-        className="panel auth-card"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={2}
-      >
-        <header className="auth-card__header">
-          <div>
-            <p className="eyebrow">Inscription</p>
-            <h2>{translate('register')}</h2>
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={verifStatus}
-              className={`status-pill status-${verifStatus}`}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-            >
-              {verifStatus === 'success'
-                ? translate('verification_success')
-                : verifStatus === 'error'
-                ? translate('verification_failed')
-                : 'Code a verifier'}
-            </motion.span>
-          </AnimatePresence>
-        </header>
-
-        <form className="auth-form" onSubmit={handleRegister}>
-          <div className="form-grid two-columns">
-            <div className="form-field">
-              <label htmlFor="name">
-                <FiUser /> {translate('name')}
-              </label>
-              <input
-                id="name"
-                value={form.name}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder="Esther Ilunga"
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="contact">
-                <FiMail /> {translate('email_or_phone')}
-              </label>
-              <input
-                id="contact"
-                value={form.emailOrPhone}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    emailOrPhone: event.target.value,
-                  }))
-                }
-                placeholder={emailOrPhonePlaceholder}
-                required
-              />
-            </div>
-          <div className="form-field">
-            <label htmlFor="photo">
-              <FiCamera /> {translate('photo_url')}
-            </label>
-            <input
-              id="photo"
-              value={form.photo}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, photo: event.target.value }))
-              }
-              placeholder="https://"
-            />
-          </div>
-            <div className="form-field">
-              <label htmlFor="password">
-                <FiLock /> Mot de passe
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, password: event.target.value }))
-                }
-                placeholder="Choisissez un mot de passe"
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="confirm">
-                <FiLock /> Confirmer
-              </label>
-              <input
-                id="confirm"
-                type="password"
-                value={form.confirm}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, confirm: event.target.value }))
-                }
-                placeholder="Repetez le mot de passe"
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="language">Langue</label>
-              <select
-                id="language"
-                value={form.language}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    language: event.target.value as FormState['language'],
-                  }))
-                }
-              >
-                <option value="fr">FR</option>
-                <option value="en">EN</option>
-              </select>
-            </div>
-          </div>
-
-          <motion.div
-            className="verification-block"
-            variants={blockFade}
+    <div className="auth-screen">
+      <div className="auth-container">
+        <motion.div 
+          className="auth-hero"
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={1}
+        >
+          <img src={branding.iccLogo} alt="Impact Centre Chrétien" />
+          <h1>Lyft-ICC</h1>
+          <p>Plateforme de covoiturage fraternelle pour les membres d'Impact Centre Chrétien</p>
+          <ul className="auth-benefits">
+            <li>
+              <FiShield />
+              <span>Trajets sécurisés entre membres vérifiés</span>
+            </li>
+            <li>
+              <FiZap />
+              <span>Réservation instantanée</span>
+            </li>
+            <li>
+              <FiUser />
+              <span>Communauté de confiance</span>
+            </li>
+          </ul>
+        </motion.div>
+        
+        <div className="auth-cards">
+          <motion.article
+            className="auth-card"
+            variants={fadeUp}
             initial="hidden"
             animate="visible"
+            custom={2}
           >
-            <div className="form-grid two-columns">
-              <div className="form-field">
-                <label htmlFor="code">
-                  <FiKey /> {translate('membership_code')}
-                </label>
-                <input
-                  id="code"
-                  value={form.code}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, code: event.target.value }))
-                  }
-                  placeholder="ICC-2025"
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="qr">
-                  <FiKey /> {translate('qr_token')}
-                </label>
-                <input
-                  id="qr"
-                  value={form.qr}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, qr: event.target.value }))
-                  }
-                  placeholder="QR-ICC-..."
-                />
-              </div>
-            </div>
-            <motion.button
-              type="button"
-              className="ghost"
-              onClick={handleVerify}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <FiCheck /> {translate('verify_membership')}
-            </motion.button>
-          </motion.div>
+            <header className="auth-card__header">
+              <span className="eyebrow">Inscription</span>
+              <h2>{translate('register')}</h2>
+            </header>
 
-          <div className="driver-upgrade">
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={vehicleMode}
-                onChange={(event) => setVehicleMode(event.target.checked)}
-              />
-              <span>{translate('upgrade_driver')}</span>
-            </label>
-            <AnimatePresence mode="wait">
-              {vehicleMode ? (
-                <motion.div
-                  key="vehicle-form"
-                  className="form-grid two-columns"
-                  variants={blockFade}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
-                  <div className="form-field">
-                    <label htmlFor="make">{translate('vehicle_make')}</label>
-                    <input
-                      id="make"
-                      value={form.vehicle.make}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vehicle: { ...prev.vehicle, make: event.target.value },
-                      }))
-                    }
-                    placeholder="Toyota"
-                  />
-                </div>
+            <form className="auth-form" onSubmit={handleRegister}>
+              <div className="form-grid two-columns">
                 <div className="form-field">
-                  <label htmlFor="model">{translate('vehicle_model')}</label>
-                  <input
-                    id="model"
-                    value={form.vehicle.model}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vehicle: { ...prev.vehicle, model: event.target.value },
-                      }))
-                    }
-                    placeholder="Prius"
-                  />
-                </div>
-                <div className="form-field">
-                  <label htmlFor="color">{translate('vehicle_color')}</label>
-                  <input
-                    id="color"
-                    value={form.vehicle.color}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vehicle: { ...prev.vehicle, color: event.target.value },
-                      }))
-                    }
-                    placeholder="Bleu"
-                  />
-                </div>
-                <div className="form-field">
-                  <label htmlFor="plate">{translate('vehicle_plate')}</label>
-                  <input
-                    id="plate"
-                    value={form.vehicle.plate}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vehicle: { ...prev.vehicle, plate: event.target.value },
-                      }))
-                    }
-                    placeholder="ICC-123"
-                  />
-                </div>
-                <div className="form-field">
-                  <label htmlFor="seats">
-                    {translate('available_seats')}
+                  <label htmlFor="name">
+                    <FiUser /> {translate('name')}
                   </label>
                   <input
-                    id="seats"
-                    type="number"
-                    min={1}
-                    max={8}
-                    value={form.vehicle.seats}
+                    id="name"
+                    value={form.name}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    placeholder="Esther Ilunga"
+                    required
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="contact">
+                    <FiMail /> {translate('email_or_phone')}
+                  </label>
+                  <input
+                    id="contact"
+                    value={form.emailOrPhone}
                     onChange={(event) =>
                       setForm((prev) => ({
                         ...prev,
-                        vehicle: {
-                          ...prev.vehicle,
-                          seats: Number(event.target.value),
-                        },
+                        emailOrPhone: event.target.value,
                       }))
                     }
+                    placeholder={emailOrPhonePlaceholder}
+                    required
                   />
                 </div>
-                </motion.div>
-              ) : (
-                <motion.p
-                  key="vehicle-hint"
-                  className="driver-hint"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' as const }}
+              </div>
+              
+              <div className="form-field">
+                <label htmlFor="photo">
+                  <FiCamera /> Photo de profil
+                </label>
+                <input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                />
+                {form.photo && (
+                  <div className="photo-preview">
+                    <img 
+                      src={URL.createObjectURL(form.photo)} 
+                      alt="Aperçu"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div className="form-grid two-columns">
+                <div className="form-field">
+                  <label htmlFor="password">
+                    <FiLock /> Mot de passe
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={form.password}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, password: event.target.value }))
+                    }
+                    placeholder="Choisissez un mot de passe"
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="confirm">
+                    <FiLock /> Confirmer
+                  </label>
+                  <input
+                    id="confirm"
+                    type="password"
+                    value={form.confirm}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, confirm: event.target.value }))
+                    }
+                    placeholder="Repetez le mot de passe"
+                  />
+                </div>
+              </div>
+              
+              <div className="form-field">
+                <label htmlFor="language">Langue</label>
+                <select
+                  id="language"
+                  value={form.language}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      language: event.target.value as FormState['language'],
+                    }))
+                  }
                 >
-                  Pre-enregistrez votre vehicule pour proposer des trajets
-                  verifies plus vite.
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </div>
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
 
-          <AnimatePresence mode="wait">
-            {error ? (
-              <motion.p
-                key={error}
-                className="auth-error"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
+
+
+              <div className="driver-upgrade">
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={vehicleMode}
+                    onChange={(event) => setVehicleMode(event.target.checked)}
+                  />
+                  <span>{translate('upgrade_driver')}</span>
+                </label>
+                <AnimatePresence mode="wait">
+                  {vehicleMode ? (
+                    <motion.div
+                      key="vehicle-form"
+                      className="form-grid two-columns"
+                      variants={blockFade}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <div className="form-field">
+                        <label htmlFor="make">{translate('vehicle_make')}</label>
+                        <input
+                          id="make"
+                          value={form.vehicle.make}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              vehicle: { ...prev.vehicle, make: event.target.value },
+                            }))
+                          }
+                          placeholder="Toyota"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="model">{translate('vehicle_model')}</label>
+                        <input
+                          id="model"
+                          value={form.vehicle.model}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              vehicle: { ...prev.vehicle, model: event.target.value },
+                            }))
+                          }
+                          placeholder="Prius"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="color">{translate('vehicle_color')}</label>
+                        <input
+                          id="color"
+                          value={form.vehicle.color}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              vehicle: { ...prev.vehicle, color: event.target.value },
+                            }))
+                          }
+                          placeholder="Bleu"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="plate">{translate('vehicle_plate')}</label>
+                        <input
+                          id="plate"
+                          value={form.vehicle.plate}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              vehicle: { ...prev.vehicle, plate: event.target.value },
+                            }))
+                          }
+                          placeholder="ICC-123"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="seats">
+                          {translate('available_seats')}
+                        </label>
+                        <input
+                          id="seats"
+                          type="number"
+                          min={1}
+                          max={8}
+                          value={form.vehicle.seats}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              vehicle: {
+                                ...prev.vehicle,
+                                seats: Number(event.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.p
+                      key="vehicle-hint"
+                      className="driver-hint"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' as const }}
+                    >
+                      Pré-enregistrez votre véhicule pour proposer des trajets vérifiés plus vite.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {error ? (
+                  <motion.p
+                    key={error}
+                    className="auth-error"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  >
+                    {error}
+                  </motion.p>
+                ) : null}
+              </AnimatePresence>
+
+              <motion.button
+                type="submit"
+                className="cta"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
               >
-                {error}
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
+                <span>{translate('register')}</span>
+                <FiChevronRight />
+              </motion.button>
+            </form>
+          </motion.article>
 
-          <motion.button
-            type="submit"
-            className="cta"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.97 }}
+          <motion.article
+            className="auth-card"
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={3}
           >
-            <span>{translate('register')}</span>
-            <FiChevronRight />
-          </motion.button>
-        </form>
-      </motion.article>
-
-      <motion.article
-        className="panel auth-card"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={3}
-      >
-        <header className="auth-card__header">
-          <div>
-            <p className="eyebrow">Connexion</p>
-            <h2>{translate('login')}</h2>
-          </div>
-        </header>
-        <form className="auth-form" onSubmit={handleLogin}>
-          <div className="form-field">
-            <label htmlFor="identifier">
-              <FiUser /> {translate('email_or_phone')}
-            </label>
-            <input
-              id="identifier"
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              placeholder={emailOrPhonePlaceholder}
-            />
-          </div>
-            <div className="form-field">
-              <label htmlFor="login-password">
-                <FiLock /> Mot de passe
-              </label>
-              <input
-                id="login-password"
-                type="password"
-                value={loginPassword}
-                onChange={(event) => setLoginPassword(event.target.value)}
-                placeholder="Mot de passe"
-              />
-            </div>
-          <motion.button
-            type="submit"
-            className="cta ghost"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <span>{translate('login')}</span>
-            <FiChevronRight />
-          </motion.button>
-        </form>
-      </motion.article>
-    </section>
+            <header className="auth-card__header">
+              <span className="eyebrow">Connexion</span>
+              <h2>{translate('login')}</h2>
+            </header>
+            <form className="auth-form" onSubmit={handleLogin}>
+              <div className="form-field">
+                <label htmlFor="identifier">
+                  <FiUser /> {translate('email_or_phone')}
+                </label>
+                <input
+                  id="identifier"
+                  value={identifier}
+                  onChange={(event) => setIdentifier(event.target.value)}
+                  placeholder={emailOrPhonePlaceholder}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="login-password">
+                  <FiLock /> Mot de passe
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  placeholder="Mot de passe"
+                />
+              </div>
+              <motion.button
+                type="submit"
+                className="cta ghost"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <span>{translate('login')}</span>
+                <FiChevronRight />
+              </motion.button>
+            </form>
+          </motion.article>
+        </div>
+      </div>
+    </div>
   );
 }

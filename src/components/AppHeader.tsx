@@ -16,11 +16,11 @@ export default function AppHeader() {
     <header className="app-header">
       <div className="header-brand" onClick={() => navigate('/home')}>
         <div className="logo-badge">
-          <img src={branding.iccLogo} alt="Impact Centre Chretien" />
+          <img src={branding.iccLogo} alt="Impact Centre Chrétien" className="icc-logo" />
         </div>
         <div className="brand-copy">
           <strong>Lyft-ICC</strong>
-          <span>Impact Centre Chretien</span>
+          <span>Impact Centre Chrétien</span>
         </div>
       </div>
       <div className="header-actions">

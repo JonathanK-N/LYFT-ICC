@@ -7,7 +7,7 @@ type TranslationMap = Record<string, string>;
 const translations: Record<Language, TranslationMap> = {
   fr: {
     app_name: 'Lyft-ICC',
-    welcome_title: 'Que Dieu bénisse votre trajet !',
+    welcome_title: 'Bienvenue sur Lyft-ICC !',
     welcome_subtitle:
       'Organisez facilement votre covoiturage pour les messes et événements Impact Centre Chrétien.',
     get_started: 'Commencer',
@@ -83,7 +83,7 @@ const translations: Record<Language, TranslationMap> = {
   },
   en: {
     app_name: 'Lyft-ICC',
-    welcome_title: 'May God bless your ride!',
+    welcome_title: 'Welcome to Lyft-ICC!',
     welcome_subtitle:
       'Arrange free carpooling for ICC Sunday services and events.',
     get_started: 'Get started',
