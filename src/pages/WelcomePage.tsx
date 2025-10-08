@@ -1,7 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../contexts/LanguageContext';
-import VoiceOnboarding from '../components/VoiceOnboarding';
-import '../pages/styles/WelcomePage.css';
+﻿import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../contexts/LanguageContext";
+import "../pages/styles/WelcomePage.css";
 
 export default function WelcomePage() {
   const navigate = useNavigate();
@@ -9,38 +8,30 @@ export default function WelcomePage() {
 
   return (
     <section className="welcome-screen screen">
-      <VoiceOnboarding />
       <div className="welcome-hero surface-card">
-        <p className="tag">Impact Centre Chretien</p>
-        <h1>{translate('welcome_title')}</h1>
-        <p className="intro">{translate('welcome_subtitle')}</p>
-        <div className="hero-art" aria-hidden="true">
-          <div className="halo-circle" />
-          <div className="car-card">
-            <span>LYFT</span>
-            <p>{translate('placeholder_map')}</p>
+        <div className="brand-block">
+          <img src="/branding/icc-logo.png" alt="Impact Centre Chretien" className="brand-logo" />
+          <div>
+            <p className="tag">Impact Centre Chretien</p>
+            <h1>{translate("welcome_title")}</h1>
+            <p className="intro">{translate("welcome_subtitle")}</p>
           </div>
         </div>
-        <div className="welcome-actions">
-          <button type="button" onClick={() => navigate('/auth')}>
-            {translate('get_started')}
+        <div className="hero-actions">
+          <button type="button" onClick={() => navigate("/auth")}>
+            {translate("get_started")}
           </button>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => navigate('/auth')}
-          >
-            {translate('login')}
+          <button type="button" className="secondary" onClick={() => navigate("/auth")}>
+            {translate("login")}
           </button>
         </div>
       </div>
 
       <div className="surface-card welcome-footer">
         <p>
-          Application web progressive (PWA) optimisee mobile. Ajoutez-la sur
-          votre ecran d accueil pour un acces rapide.
+          Application web progressive (PWA) optimisee mobile. Ajoutez-la sur votre ecran d accueil pour un acces rapide.
         </p>
-        <p>Mode sombre, textes larges et support vocal pour nos seniors.</p>
+        <p>Mode clair, textes lisibles et navigation simplifiee sur tous vos appareils.</p>
       </div>
     </section>
   );

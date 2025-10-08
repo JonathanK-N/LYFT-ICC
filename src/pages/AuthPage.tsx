@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { FiImage, FiLock, FiMail, FiPhone, FiUser } from 'react-icons/fi';
 import { useAppState } from '../contexts/AppStateContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import '../pages/styles/AuthPage.css';
@@ -15,7 +14,7 @@ interface RegisterForm {
   confirm: string;
 }
 
-const initialForm: RegisterForm = {
+const emptyForm: RegisterForm = {
   name: '',
   email: '',
   phone: '',
@@ -25,19 +24,18 @@ const initialForm: RegisterForm = {
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3, ease: 'easeOut' as const },
+    transition: { duration: 0.25, ease: 'easeOut' as const },
   },
 };
 
 export default function AuthPage() {
   const { registerMember, login } = useAppState();
   const { translate } = useLanguage();
-
-  const [form, setForm] = useState<RegisterForm>(initialForm);
+  const [form, setForm] = useState<RegisterForm>(emptyForm);
   const [photoPreview, setPhotoPreview] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -45,10 +43,7 @@ export default function AuthPage() {
   const [loginPassword, setLoginPassword] = useState('');
 
   const emailPlaceholder = useMemo(
-    () =>
-      form.language === 'fr'
-        ? 'esther@example.com'
-        : 'esther@example.com',
+    () => (form.language === 'fr' ? 'esther@example.com' : 'esther@example.com'),
     [form.language],
   );
 
@@ -85,7 +80,7 @@ export default function AuthPage() {
       return;
     }
 
-    if (!form.password || form.password.length < 6) {
+    if (form.password.length < 6) {
       setError('Mot de passe trop court (6 caracteres minimum).');
       return;
     }
@@ -95,7 +90,7 @@ export default function AuthPage() {
       return;
     }
 
-    const member = await registerMember({
+    const newMember = await registerMember({
       name: trimmedName,
       email: trimmedEmail || undefined,
       phone: trimmedPhone || undefined,
@@ -104,12 +99,12 @@ export default function AuthPage() {
       language: form.language,
     });
 
-    if (!member) {
+    if (!newMember) {
       setError('Inscription impossible pour le moment. Reessayez plus tard.');
       return;
     }
 
-    setForm(initialForm);
+    setForm(emptyForm);
     setPhotoPreview(undefined);
   };
 
@@ -122,11 +117,7 @@ export default function AuthPage() {
       return;
     }
 
-    const member = await login({
-      identifier: identifier.trim(),
-      password: loginPassword,
-    });
-
+    const member = await login({ identifier: identifier.trim(), password: loginPassword });
     if (!member) {
       setLoginError('Identifiants invalides. Verifiez vos informations.');
       return;
@@ -139,19 +130,11 @@ export default function AuthPage() {
   return (
     <section className="auth-page">
       <div className="auth-layout">
-        <motion.article
-          className="auth-card"
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-        >
+        <motion.article className="auth-card" variants={cardVariants} initial="hidden" animate="visible">
           <header className="auth-card__header">
             <span className="eyebrow">{translate('register')}</span>
             <h2>Creer un compte</h2>
-            <p>
-              Rejoignez la communaute Impact Centre Chretien et organisez vos
-              trajets en toute simplicite.
-            </p>
+            <p>Rejoignez la communaute Impact Centre Chretien et organisez vos trajets en toute simplicite.</p>
           </header>
 
           {error ? <p className="form-error">{error}</p> : null}
@@ -159,43 +142,31 @@ export default function AuthPage() {
           <form className="auth-form" onSubmit={handleRegister}>
             <div className="form-grid two-columns">
               <div className="form-field">
-                <label htmlFor="name">
-                  <FiUser /> {translate('name')}
-                </label>
+                <label htmlFor="name">{translate('name')}</label>
                 <input
                   id="name"
                   value={form.name}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, name: event.target.value }))
-                  }
+                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
                   placeholder="Esther Ilunga"
                   required
                 />
               </div>
               <div className="form-field">
-                <label htmlFor="email">
-                  <FiMail /> Email
-                </label>
+                <label htmlFor="email">Email</label>
                 <input
                   id="email"
                   type="email"
                   value={form.email}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, email: event.target.value }))
-                  }
+                  onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
                   placeholder={emailPlaceholder}
                 />
               </div>
               <div className="form-field">
-                <label htmlFor="phone">
-                  <FiPhone /> Telephone
-                </label>
+                <label htmlFor="phone">Telephone</label>
                 <input
                   id="phone"
                   value={form.phone}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, phone: event.target.value }))
-                  }
+                  onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
                   placeholder="+33 6 12 34 56 78"
                 />
               </div>
@@ -205,10 +176,7 @@ export default function AuthPage() {
                   id="language"
                   value={form.language}
                   onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      language: event.target.value as 'fr' | 'en',
-                    }))
+                    setForm((prev) => ({ ...prev, language: event.target.value as 'fr' | 'en' }))
                   }
                 >
                   <option value="fr">FR</option>
@@ -219,37 +187,23 @@ export default function AuthPage() {
 
             <div className="form-grid two-columns">
               <div className="form-field">
-                <label htmlFor="password">
-                  <FiLock /> Mot de passe
-                </label>
+                <label htmlFor="password">Mot de passe</label>
                 <input
                   id="password"
                   type="password"
                   value={form.password}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      password: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
                   placeholder="********"
                   required
                 />
               </div>
               <div className="form-field">
-                <label htmlFor="confirm">
-                  <FiLock /> Confirmer
-                </label>
+                <label htmlFor="confirm">Confirmer</label>
                 <input
                   id="confirm"
                   type="password"
                   value={form.confirm}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      confirm: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => setForm((prev) => ({ ...prev, confirm: event.target.value }))}
                   placeholder="********"
                   required
                 />
@@ -257,15 +211,8 @@ export default function AuthPage() {
             </div>
 
             <div className="form-field">
-              <label htmlFor="photo">
-                <FiImage /> Photo de profil (optionnelle)
-              </label>
-              <input
-                id="photo"
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-              />
+              <label htmlFor="photo">Photo de profil (optionnelle)</label>
+              <input id="photo" type="file" accept="image/*" onChange={handlePhotoChange} />
               {photoPreview ? (
                 <div className="photo-preview">
                   <img src={photoPreview} alt="Apercu du profil" />
@@ -275,15 +222,13 @@ export default function AuthPage() {
             </div>
 
             <div className="form-actions">
-              <button type="submit">
-                {translate('register')}
-              </button>
+              <button type="submit">{translate('register')}</button>
               <p className="divider-text">ou</p>
               <button
                 type="button"
                 className="secondary"
                 onClick={() => {
-                  setForm(initialForm);
+                  setForm(emptyForm);
                   setPhotoPreview(undefined);
                 }}
               >
@@ -293,12 +238,7 @@ export default function AuthPage() {
           </form>
         </motion.article>
 
-        <motion.article
-          className="auth-card"
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-        >
+        <motion.article className="auth-card" variants={cardVariants} initial="hidden" animate="visible">
           <header className="auth-card__header">
             <span className="eyebrow">{translate('login')}</span>
             <h2>Se connecter</h2>
@@ -309,9 +249,7 @@ export default function AuthPage() {
 
           <form className="auth-form" onSubmit={handleLogin}>
             <div className="form-field">
-              <label htmlFor="identifier">
-                <FiUser /> {translate('email_or_phone')}
-              </label>
+              <label htmlFor="identifier">{translate('email_or_phone')}</label>
               <input
                 id="identifier"
                 value={identifier}
@@ -321,9 +259,7 @@ export default function AuthPage() {
               />
             </div>
             <div className="form-field">
-              <label htmlFor="login-password">
-                <FiLock /> Mot de passe
-              </label>
+              <label htmlFor="login-password">Mot de passe</label>
               <input
                 id="login-password"
                 type="password"
