@@ -1,4 +1,3 @@
-import { FiBell } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -20,8 +19,8 @@ export default function NotificationsTray() {
   return (
     <aside className="notifications-tray">
       <div className="tray-header">
-        <span className="tray-icon">
-          <FiBell />
+        <span className="tray-icon" aria-hidden="true">
+          ●
         </span>
         <span className="tray-title">{translate('notifications')}</span>
         <button
@@ -43,4 +42,3 @@ export default function NotificationsTray() {
     </aside>
   );
 }
-

@@ -1,19 +1,19 @@
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 50;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px;
-  background: #ffffff;
+  background: var(--color-surface);
   border-bottom: 1px solid #e5e7eb;
 }
 
 .header-brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   border: none;
@@ -31,59 +31,43 @@
   background: #ffffff;
 }
 
-.brand-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
-  color: #111827;
-}
-
-.brand-copy strong {
-  font-size: 1.1rem;
-}
-
-.brand-copy span {
-  font-size: 0.8rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .header-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.header-nav button {
+.nav-link {
   border: 1px solid transparent;
   background: #f3f4f6;
-  color: #1f2933;
+  color: var(--color-text);
   padding: 0.55rem 0.9rem;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 500;
   transition: background 0.2s ease, border 0.2s ease;
 }
 
-.header-nav button:hover {
+.nav-link:hover {
   background: #e5e7eb;
   border-color: #d1d5db;
 }
 
-.language-btn {
-  min-width: 52px;
-}
-
-.profile-btn {
-  background: #2563eb;
+.nav-link.active {
+  background: var(--color-primary);
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
-.profile-btn:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+.nav-link.language {
+  min-width: 52px;
 }
 
 @media (max-width: 640px) {
@@ -93,10 +77,10 @@
   }
 
   .header-nav {
-    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .header-nav button {
+  .nav-link {
     flex: 1;
   }
 }

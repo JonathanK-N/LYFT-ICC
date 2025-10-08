@@ -105,6 +105,7 @@ const mapProfileToMember = (profile: UserProfile): Member => ({
   ridesGiven: profile.stats?.ridesGiven ?? 0,
   ridesTaken: profile.stats?.ridesTaken ?? 0,
   emergencyContact: undefined,
+  password: undefined,
 });
 
 const mapRideEntityToRide = (entity: RideEntity): Ride => {
@@ -409,6 +410,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       ridesGiven: 0,
       ridesTaken: 0,
       emergencyContact: undefined,
+      password: payload.password,
     };
     setMembers((prev) => [newMember, ...prev]);
     setCurrentUser(newMember);
@@ -434,9 +436,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const nameMatch = m.name.toLowerCase() === normalized;
       return emailMatch || phoneMatch || nameMatch;
     });
-    if (member) {
-      setCurrentUser(member);
+    if (!member) {
+      return undefined;
     }
+
+    if (!firebaseEnabled) {
+      if (member.password) {
+        if (!password || member.password !== password) {
+          return undefined;
+        }
+      } else if (password) {
+        return undefined;
+      }
+    }
+
+    setCurrentUser(member);
     return member;
   };
 

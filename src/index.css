@@ -1,12 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  background-color: #f5f6fa;
-  color: #1f2933;
-  scroll-behavior: smooth;
+  --color-page: #eef1f6;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-text: #1f2937;
+  --color-text-muted: #4b5563;
+  --radius-md: 14px;
+  --shadow-sm: 0 8px 16px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 20px 40px rgba(15, 23, 42, 0.12);
 }
 
 *,
@@ -19,22 +23,24 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-text);
+  background: var(--color-page);
 }
 
 body {
   min-height: 100vh;
-  background: #f5f6fa;
-  color: inherit;
 }
 
 #root {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
 
 a {
-  color: #2563eb;
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -46,33 +52,33 @@ button {
   font-family: inherit;
   font-size: 1rem;
   cursor: pointer;
-  border-radius: 10px;
-  padding: 0.65rem 1.2rem;
-  border: 1px solid #2563eb;
-  background-color: #2563eb;
+  border-radius: 12px;
+  padding: 0.65rem 1.1rem;
+  border: 1px solid var(--color-primary);
+  background-color: var(--color-primary);
   color: #ffffff;
   transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 button:hover {
-  background-color: #1d4ed8;
-  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.2);
+  background-color: var(--color-primary-dark);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
 button.secondary {
   background-color: #ffffff;
-  color: #2563eb;
-  border: 1px solid #cbd5f5;
+  color: var(--color-primary);
+  border: 1px solid rgba(37, 99, 235, 0.3);
 }
 
 button.secondary:hover {
-  background-color: #eff2ff;
+  background-color: #edf2ff;
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.35);
-  outline-offset: 3px;
+  outline: 3px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 2px;
 }
 
 input,
@@ -86,4 +92,3 @@ img {
   max-width: 100%;
   display: block;
 }
-

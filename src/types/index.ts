@@ -24,6 +24,7 @@ export interface Member {
   ridesGiven: number;
   ridesTaken: number;
   emergencyContact?: string;
+  password?: string;
 }
 
 export type RideStatus = 'pending' | 'confirmed' | 'in-progress' | 'completed';

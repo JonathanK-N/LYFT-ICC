@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -6,7 +7,6 @@ import './BottomNav.css';
 interface NavItem {
   label: string;
   route: string;
-  adminOnly?: boolean;
 }
 
 export default function BottomNav() {
@@ -15,32 +15,18 @@ export default function BottomNav() {
   const { currentUser } = useAppState();
   const { translate } = useLanguage();
 
-  const items: NavItem[] = [
-    {
-      label: translate('dashboard'),
-      route: '/home',
-    },
-    {
-      label: translate('map'),
-      route: '/map',
-    },
-    {
-      label: translate('events'),
-      route: '/events',
-    },
-    {
-      label: translate('profile'),
-      route: '/profile',
-    },
-  ];
-
-  if (currentUser?.role === 'admin') {
-    items.push({
-      label: translate('admin_portal'),
-      route: '/admin',
-      adminOnly: true,
-    });
-  }
+  const items = useMemo<NavItem[]>(() => {
+    const base: NavItem[] = [
+      { label: translate('dashboard'), route: '/home' },
+      { label: translate('map'), route: '/map' },
+      { label: translate('events'), route: '/events' },
+      { label: translate('profile'), route: '/profile' },
+    ];
+    if (currentUser?.role === 'admin') {
+      base.push({ label: translate('admin_portal'), route: '/admin' });
+    }
+    return base;
+  }, [currentUser?.role, translate]);
 
   return (
     <nav className="bottom-nav" aria-label="Navigation principale">
