@@ -1,8 +1,8 @@
-import { useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import { geocodeAddress } from "../lib/map/geocoding";
-import { useAppState } from "../contexts/AppStateContext";
-import "./OfferRideForm.css";
+import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
+import { geocodeAddress } from '../lib/map/geocoding';
+import { useAppState } from '../contexts/AppStateContext';
+import './OfferRideForm.css';
 
 interface FormState {
   origin: string;
@@ -13,11 +13,11 @@ interface FormState {
 }
 
 const initialState: FormState = {
-  origin: "",
-  destination: "",
-  departure: "",
+  origin: '',
+  destination: '',
+  departure: '',
   seats: 3,
-  notes: "",
+  notes: '',
 };
 
 export default function OfferRideForm() {
@@ -27,11 +27,13 @@ export default function OfferRideForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN ?? "";
-  const isDriver = currentUser?.role === "driver";
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
+  const isDriver = currentUser?.role === 'driver';
 
-  const handleChange = (key: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = key === "seats" ? Number(event.target.value) : event.target.value;
+  const handleChange = (key: keyof FormState) => (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const value = key === 'seats' ? Number(event.target.value) : event.target.value;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -41,16 +43,16 @@ export default function OfferRideForm() {
     setSuccess(null);
 
     if (!isDriver) {
-      setError("Vous devez disposer d'un profil conducteur pour proposer un trajet.");
+      setError('You need a driver profile to offer a ride.');
       return;
     }
     if (!form.origin || !form.destination || !form.departure) {
-      setError("Merci de renseigner les lieux et la date de départ.");
+      setError('Please fill origin, destination and departure time.');
       return;
     }
 
     if (!mapboxToken) {
-      setError("Ajoutez VITE_MAPBOX_TOKEN dans vos variables d'environnement pour publier un trajet.");
+      setError('Set VITE_MAPBOX_TOKEN to publish a ride.');
       return;
     }
 
@@ -69,10 +71,10 @@ export default function OfferRideForm() {
         notes: form.notes || undefined,
       });
 
-      setSuccess("Trajet publié avec succès.");
+      setSuccess('Ride published successfully.');
       setForm(initialState);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de créer le trajet.");
+      setError(err instanceof Error ? err.message : 'Unable to create ride.');
     } finally {
       setLoading(false);
     }
@@ -81,31 +83,31 @@ export default function OfferRideForm() {
   if (!mapboxToken) {
     return (
       <section className="offer-ride">
-        <h2>Proposer un trajet</h2>
-        <p className="offer-ride__info">Ajoutez VITE_MAPBOX_TOKEN dans vos variables d'environnement pour activer le géocodage.</p>
+        <h2>Offer a ride</h2>
+        <p className="offer-ride__info">Add VITE_MAPBOX_TOKEN in your environment variables to enable geocoding.</p>
       </section>
     );
   }
 
   return (
     <section className="offer-ride">
-      <h2>Proposer un trajet</h2>
+      <h2>Offer a ride</h2>
       {!isDriver ? (
         <p className="offer-ride__info">
-          Votre profil est actuellement passager. Complétez votre véhicule dans l'onglet profil pour devenir conducteur.
+          Your profile is currently passenger. Complete your vehicle in the profile tab to become a driver.
         </p>
       ) : (
         <>
           <p className="offer-ride__info">
-            Renseignez les informations principales. Les passagers verront votre trajet immédiatement.
+            Provide the main details. Passengers will see your ride immediately.
           </p>
           <form className="offer-ride__form" onSubmit={handleSubmit}>
-            <label htmlFor="origin">Point de départ</label>
+            <label htmlFor="origin">Origin</label>
             <input
               id="origin"
               value={form.origin}
-              onChange={handleChange("origin")}
-              placeholder="Ex. 57 rue du Commerce, Paris"
+              onChange={handleChange('origin')}
+              placeholder="e.g. 57 rue du Commerce, Paris"
               required
             />
 
@@ -113,44 +115,44 @@ export default function OfferRideForm() {
             <input
               id="destination"
               value={form.destination}
-              onChange={handleChange("destination")}
-              placeholder="Ex. Impact Centre Chretien, Evry"
+              onChange={handleChange('destination')}
+              placeholder="e.g. Impact Centre Chretien, Evry"
               required
             />
 
-            <label htmlFor="departure">Date et heure de départ</label>
+            <label htmlFor="departure">Departure (date & time)</label>
             <input
               id="departure"
               type="datetime-local"
               value={form.departure}
-              onChange={handleChange("departure")}
+              onChange={handleChange('departure')}
               required
             />
 
-            <label htmlFor="seats">Places disponibles</label>
+            <label htmlFor="seats">Seats available</label>
             <input
               id="seats"
               type="number"
               min={1}
               max={8}
               value={form.seats}
-              onChange={handleChange("seats")}
+              onChange={handleChange('seats')}
             />
 
-            <label htmlFor="notes">Message aux passagers (optionnel)</label>
+            <label htmlFor="notes">Message for passengers (optional)</label>
             <textarea
               id="notes"
               value={form.notes}
-              onChange={handleChange("notes")}
+              onChange={handleChange('notes')}
               rows={3}
-              placeholder="Informations utiles, point de rendez-vous..."
+              placeholder="Extra info, meeting point..."
             />
 
             {error ? <p className="offer-ride__error">{error}</p> : null}
             {success ? <p className="offer-ride__success">{success}</p> : null}
 
             <button type="submit" disabled={loading}>
-              {loading ? "Publication en cours..." : "Publier le trajet"}
+              {loading ? 'Publishing...' : 'Publish ride'}
             </button>
           </form>
         </>
