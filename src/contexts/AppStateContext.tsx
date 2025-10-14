@@ -354,7 +354,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         const body =
           payload?.notification?.body ??
           payload?.data?.message ??
-          'Notification reçue';
+          'Notification reÃ§ue';
         const actionLabel =
           payload?.notification?.title ?? payload?.data?.actionLabel;
         setNotifications((prev) => [
@@ -523,7 +523,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!currentUser.vehicle) {
-      throw new Error('Compl�tez votre v�hicule dans votre profil conducteur.');
+      throw new Error('Complétez votre véhicule dans votre profil conducteur.');
     }
     const departureDate = new Date(input.departureTime);
     if (Number.isNaN(departureDate.getTime())) {
