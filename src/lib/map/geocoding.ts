@@ -10,7 +10,7 @@ export async function geocodeAddress(address: string, token: string): Promise<Ge
   if (!token) {
     throw new Error('Mapbox token manquant. Renseignez VITE_MAPBOX_TOKEN.');
   }
-  const url = ${MAPBOX_BASE_URL}.json?access_token=&limit=1&language=fr;
+  const url = `${MAPBOX_BASE_URL}${encodeURIComponent(address)}.json?access_token=${token}&limit=1&language=fr`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error('Erreur lors de la requete de geocodage.');
