@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import OfferRideForm from '../components/OfferRideForm';
-import RideFilters, { RideFilterValue } from '../components/RideFilters';
+import type { RideFilterValue } from '../components/RideFilters';
+import RideFilters from '../components/RideFilters';
 import { useDriverLocation } from '../hooks/useDriverLocation';
 import { useAppState } from '../contexts/AppStateContext';
 import '../pages/styles/MapPage.css';
@@ -43,7 +44,7 @@ export default function MapPage() {
       setMapError(null);
     } catch (error) {
       console.warn('[map] init failed', error);
-      setMapError('Impossible de charger la carte. Vérifiez le token Mapbox.');
+      setMapError('Impossible de charger la carte. VÃ©rifiez le token Mapbox.');
     }
 
     return () => {
@@ -104,7 +105,7 @@ export default function MapPage() {
     <section className="map-page">
       <div className="map-page__header">
         <h1>Carte des trajets</h1>
-        <p>Filtrez les trajets disponibles et suivez lactivité des conducteurs en direct.</p>
+        <p>Filtrez les trajets disponibles et suivez lÂ’activitÃ© des conducteurs en direct.</p>
         <div className="map-controls">
           <button
             type="button"
@@ -128,7 +129,7 @@ export default function MapPage() {
               className={`share-location ${shareLocation ? 'active' : ''}`}
               onClick={() => setShareLocation((prev) => !prev)}
             >
-              {shareLocation ? 'Arrêter le partage' : 'Partager ma position'}
+              {shareLocation ? 'ArrÃªter le partage' : 'Partager ma position'}
             </button>
           ) : null}
         </div>
@@ -149,7 +150,7 @@ export default function MapPage() {
           <div className="ride-list">
             {filteredRides.length === 0 ? (
               <div className="ride-empty">
-                Aucun trajet ne correspond à vos critères pour le moment.
+                Aucun trajet ne correspond Ã  vos critÃ¨res pour le moment.
               </div>
             ) : (
               filteredRides.map((ride) => (
@@ -158,7 +159,7 @@ export default function MapPage() {
                     <div>
                       <strong>{ride.origin}</strong>
                       <span>
-                        Départ {new Date(ride.departureTime).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                        DÃ©part {new Date(ride.departureTime).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div>
@@ -170,7 +171,7 @@ export default function MapPage() {
                     <div className="ride-meta__info">
                       <span>{ride.driverName}</span>
                       <span>
-                        {ride.vehicle.make} {ride.vehicle.model} · {ride.vehicle.color}
+                        {ride.vehicle.make} {ride.vehicle.model} Â· {ride.vehicle.color}
                       </span>
                     </div>
                     <button type="button">Contacter</button>
