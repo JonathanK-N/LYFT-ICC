@@ -25,6 +25,9 @@ export interface Member {
   ridesTaken: number;
   emergencyContact?: string;
   password?: string;
+  locationLat?: number;
+  locationLng?: number;
+  locationUpdatedAt?: string;
 }
 
 export type RideStatus = 'pending' | 'confirmed' | 'in-progress' | 'completed';
@@ -37,6 +40,10 @@ export interface Ride {
   vehicle: VehicleInfo;
   origin: string;
   destination: string;
+  originLat: number;
+  originLng: number;
+  destinationLat: number;
+  destinationLng: number;
   departureTime: string;
   seatsAvailable: number;
   seatsBooked: number;
@@ -44,6 +51,9 @@ export interface Ride {
   notes?: string;
   eventId?: string;
   passengers: string[];
+  driverLat?: number;
+  driverLng?: number;
+  driverLocationUpdatedAt?: string;
 }
 
 export type RideRequestStatus = 'pending' | 'accepted' | 'declined';

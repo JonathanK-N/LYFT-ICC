@@ -3,11 +3,14 @@ import type { ReactNode } from 'react';
 import {
   collection,
   doc,
+  getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
-  updateDoc,
   Timestamp,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import type {
@@ -59,6 +62,21 @@ interface LoginPayload {
   password?: string;
 }
 
+interface CreateRideInput {
+  origin: { address: string; lat: number; lng: number };
+  destination: { address: string; lat: number; lng: number };
+  departureTime: string;
+  seatsAvailable: number;
+  notes?: string;
+  eventId?: string;
+}
+
+interface DriverLocationInput {
+  lat: number;
+  lng: number;
+  updatedAt?: Date;
+}
+
 interface AppStateContextValue {
   members: Member[];
   rides: Ride[];
@@ -72,9 +90,7 @@ interface AppStateContextValue {
   login: (payload: LoginPayload) => Promise<Member | undefined>;
   logout: () => Promise<void>;
   upgradeToDriver: (vehicle: VehicleInfo) => Promise<void>;
-  createRide: (
-    ride: Omit<Ride, 'id' | 'driverName' | 'driverAvatar' | 'seatsBooked' | 'passengers'>,
-  ) => Promise<void>;
+  createRide: (input: CreateRideInput) => Promise<void>;
   requestRide: (rideId: string, message?: string) => Promise<void>;
   respondToRideRequest: (requestId: string, accepted: boolean) => Promise<void>;
   startRide: (rideId: string) => Promise<void>;
@@ -85,11 +101,25 @@ interface AppStateContextValue {
     message: Omit<ChatMessage, 'id' | 'timestamp' | 'rideId'>,
   ) => void;
   sendAnnouncement: (message: string) => Promise<void>;
+  updateDriverLocation: (input: DriverLocationInput) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(
   undefined,
 );
+
+const toIsoString = (value: Timestamp | Date | undefined | null): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (typeof (value as Timestamp).toDate === 'function') {
+    return (value as Timestamp).toDate().toISOString();
+  }
+  return undefined;
+};
 
 const mapProfileToMember = (profile: UserProfile): Member => ({
   id: profile.uid,
@@ -106,6 +136,9 @@ const mapProfileToMember = (profile: UserProfile): Member => ({
   ridesTaken: profile.stats?.ridesTaken ?? 0,
   emergencyContact: undefined,
   password: undefined,
+  locationLat: profile.currentLocation?.lat,
+  locationLng: profile.currentLocation?.lng,
+  locationUpdatedAt: toIsoString(profile.currentLocation?.updatedAt),
 });
 
 const mapRideEntityToRide = (entity: RideEntity): Ride => {
@@ -125,15 +158,20 @@ const mapRideEntityToRide = (entity: RideEntity): Ride => {
     vehicle: entity.driverVehicle,
     origin: entity.origin.address,
     destination: entity.destination.address,
-    departureTime: entity.departureTime instanceof Date
-      ? entity.departureTime.toISOString()
-      : (entity.departureTime as any)?.toDate ? (entity.departureTime as any).toDate().toISOString() : new Date().toISOString(),
+    originLat: entity.origin.lat,
+    originLng: entity.origin.lng,
+    destinationLat: entity.destination.lat,
+    destinationLng: entity.destination.lng,
+    departureTime: toIsoString(entity.departureTime) ?? new Date().toISOString(),
     seatsAvailable: entity.seatsAvailable,
     seatsBooked: entity.seatsBooked,
     status,
     notes: entity.note,
     eventId: entity.eventId,
     passengers: entity.passengers ?? [],
+    driverLat: entity.driverLocation?.lat,
+    driverLng: entity.driverLocation?.lng,
+    driverLocationUpdatedAt: toIsoString(entity.driverLocation?.updatedAt),
   };
 };
 
@@ -480,48 +518,158 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const createRide = async (
-    ride: Omit<
-      Ride,
-      'id' | 'driverName' | 'driverAvatar' | 'seatsBooked' | 'passengers'
-    >,
-  ) => {
-    if (!currentUser) return;
+  const createRide = async (input: CreateRideInput) => {
+    if (!currentUser) {
+      return;
+    }
+    if (!currentUser.vehicle) {
+      throw new Error('Complétez votre véhicule dans votre profil conducteur.');
+    }
+    const departureDate = new Date(input.departureTime);
+    if (Number.isNaN(departureDate.getTime())) {
+      throw new Error('Date de depart invalide.');
+    }
+    const seatCount = Math.max(1, Math.min(8, Number(input.seatsAvailable) || 1));
+
     if (firebaseEnabled) {
-      const rideId = `ride-${Math.random().toString(36).slice(2, 10)}`;
+      const rideRef = doc(collection(firebaseServices.db, 'rides'));
       const entity: RideEntity = {
-        id: rideId,
+        id: rideRef.id,
         driverId: currentUser.id,
         driverName: currentUser.name,
         driverPhotoUrl: currentUser.avatar,
-        driverVehicle: ride.vehicle,
-        origin: { address: ride.origin, lat: 0, lng: 0 },
-        destination: { address: ride.destination, lat: 0, lng: 0 },
-        departureTime: Timestamp.fromDate(new Date(ride.departureTime)),
-        seatsAvailable: ride.seatsAvailable,
+        driverVehicle: currentUser.vehicle!,
+        origin: {
+          address: input.origin.address,
+          lat: input.origin.lat,
+          lng: input.origin.lng,
+        },
+        destination: {
+          address: input.destination.address,
+          lat: input.destination.lat,
+          lng: input.destination.lng,
+        },
+        departureTime: Timestamp.fromDate(departureDate),
+        seatsAvailable: seatCount,
         seatsBooked: 0,
         status: 'published',
         visibility: 'public',
-        note: ride.notes,
-        eventId: ride.eventId,
+        note: input.notes,
+        eventId: input.eventId,
         passengers: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        driverLocation: currentUser.locationLat && currentUser.locationLng
+          ? {
+              lat: currentUser.locationLat,
+              lng: currentUser.locationLng,
+              updatedAt: Timestamp.fromDate(
+                currentUser.locationUpdatedAt ? new Date(currentUser.locationUpdatedAt) : new Date(),
+              ),
+            }
+          : undefined,
       };
-      await setDoc(doc(firebaseServices.db, 'rides', rideId), entity);
+      await setDoc(rideRef, entity);
       return;
     }
+
     const newRide: Ride = {
-      ...ride,
       id: `ride-${Math.random().toString(36).slice(2, 10)}`,
       driverId: currentUser.id,
       driverName: currentUser.name,
       driverAvatar: currentUser.avatar,
+      vehicle: currentUser.vehicle!,
+      origin: input.origin.address,
+      originLat: input.origin.lat,
+      originLng: input.origin.lng,
+      destination: input.destination.address,
+      destinationLat: input.destination.lat,
+      destinationLng: input.destination.lng,
+      departureTime: departureDate.toISOString(),
+      seatsAvailable: seatCount,
       seatsBooked: 0,
-      passengers: [],
       status: 'pending',
+      notes: input.notes,
+      eventId: input.eventId,
+      passengers: [],
+      driverLat: currentUser.locationLat,
+      driverLng: currentUser.locationLng,
+      driverLocationUpdatedAt: currentUser.locationUpdatedAt,
     };
     setRides((prev) => [newRide, ...prev]);
+  };
+
+  const updateDriverLocation = async ({ lat, lng, updatedAt = new Date() }: DriverLocationInput) => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (firebaseEnabled) {
+      const timestamp = Timestamp.fromDate(updatedAt);
+      await updateDoc(doc(firebaseServices.db, 'profiles', currentUser.id), {
+        currentLocation: {
+          lat,
+          lng,
+          updatedAt: timestamp,
+        },
+        updatedAt: serverTimestamp(),
+      });
+
+      const activeQuery = query(
+        collection(firebaseServices.db, 'rides'),
+        where('driverId', '==', currentUser.id),
+        where('status', 'in', ['published', 'in_progress']),
+      );
+      const snapshot = await getDocs(activeQuery);
+      await Promise.all(
+        snapshot.docs.map((rideDoc) =>
+          updateDoc(rideDoc.ref, {
+            driverLocation: {
+              lat,
+              lng,
+              updatedAt: timestamp,
+            },
+            updatedAt: serverTimestamp(),
+          }),
+        ),
+      );
+      return;
+    }
+
+    setMembers((prev) =>
+      prev.map((member) =>
+        member.id === currentUser.id
+          ? {
+              ...member,
+              locationLat: lat,
+              locationLng: lng,
+              locationUpdatedAt: updatedAt.toISOString(),
+            }
+          : member,
+      ),
+    );
+    setRides((prev) =>
+      prev.map((ride) =>
+        ride.driverId === currentUser.id
+          ? {
+              ...ride,
+              driverLat: lat,
+              driverLng: lng,
+              driverLocationUpdatedAt: updatedAt.toISOString(),
+            }
+          : ride,
+      ),
+    );
+    setCurrentUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            locationLat: lat,
+            locationLng: lng,
+            locationUpdatedAt: updatedAt.toISOString(),
+          }
+        : prev,
+    );
   };
 
   const requestRide = async (rideId: string, message?: string) => {
@@ -663,6 +811,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addNotification,
       sendChatMessage,
       sendAnnouncement,
+      updateDriverLocation,
     }),
     [
       members,
@@ -673,6 +822,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       chatMessages,
       currentUser,
       adminStats,
+      registerMember,
+      login,
+      logout,
+      upgradeToDriver,
+      createRide,
+      requestRide,
+      respondToRideRequest,
+      startRide,
+      finishRide,
+      addNotification,
+      sendChatMessage,
+      sendAnnouncement,
+      updateDriverLocation,
     ],
   );
 
@@ -690,6 +852,9 @@ export function useAppState() {
   }
   return context;
 }
+
+
+
 
 
 
