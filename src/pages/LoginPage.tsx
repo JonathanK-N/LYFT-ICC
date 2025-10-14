@@ -1,23 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
-import './styles/AuthForms.css';
+import './styles/LoginPage.css';
 
 export default function LoginPage() {
-  const { currentUser, login } = useAppState();
+  const { login } = useAppState();
   const navigate = useNavigate();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (currentUser) {
-      navigate('/home', { replace: true });
-    }
-  }, [currentUser, navigate]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -47,14 +41,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-wrapper">
-      <section className="auth-card-simple">
-        <div>
-          <h1>Sign in</h1>
-          <p className="description">Access your Lyft-ICC account.</p>
-        </div>
-        <form className="auth-form-simple" onSubmit={handleSubmit}>
-          <label htmlFor="identifier">Email or phone</label>
+    <div className="login-wrapper">
+      <div className="login-header">
+        <img src="/icons/icon-192.png" alt="Lyft-ICC" className="login-logo" />
+        <h1>Connexion</h1>
+        <p className="login-subtitle">Accédez à votre compte Lyft-ICC</p>
+      </div>
+      <section className="login-card">
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label htmlFor="identifier">Email ou téléphone</label>
           <input
             id="identifier"
             value={identifier}
@@ -63,7 +58,7 @@ export default function LoginPage() {
             required
           />
 
-          <label htmlFor="password">Password (optional for demo)</label>
+          <label htmlFor="password">Mot de passe (optionnel pour la démo)</label>
           <input
             id="password"
             type="password"
@@ -72,16 +67,16 @@ export default function LoginPage() {
             placeholder="********"
           />
 
-          {error ? <p className="auth-error">{error}</p> : null}
-          <div className="auth-actions">
+          {error ? <p className="login-error">{error}</p> : null}
+          <div className="login-actions">
             <button type="submit" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </div>
         </form>
-        <div className="auth-links">
-          <span>Need an account?</span>
-          <Link to="/register">Create an account</Link>
+        <div className="login-links">
+          <span>Pas encore de compte ?</span>
+          <Link to="/register">Créer un compte</Link>
         </div>
       </section>
     </div>

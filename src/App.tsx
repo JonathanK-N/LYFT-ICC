@@ -51,14 +51,8 @@ function AppContainer() {
     >
       <Routes>
         <Route path="/" element={<WelcomePage />} />
-        <Route
-          path="/login"
-          element={currentUser ? <Navigate to="/home" replace /> : <LoginPage />}
-        />
-        <Route
-          path="/register"
-          element={currentUser ? <Navigate to="/home" replace /> : <RegisterPage />}
-        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/home"
           element={currentUser ? <HomePage /> : <Navigate to="/login" replace />}

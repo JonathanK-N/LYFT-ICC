@@ -52,6 +52,24 @@
   gap: 0.35rem;
 }
 
+.animated-logo {
+  animation: logoEntrance 1s ease-out;
+}
+
+@keyframes logoEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 @media (max-width: 640px) {
   .brand-block {
     flex-direction: column;

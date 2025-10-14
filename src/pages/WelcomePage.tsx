@@ -10,7 +10,7 @@ export default function WelcomePage() {
     <section className="welcome-screen screen">
       <div className="welcome-hero surface-card">
         <div className="brand-block">
-          <img src="/branding/icc-logo.png" alt="Impact Centre Chretien" className="brand-logo" />
+          <img src="/icons/icon-192.png" alt="Impact Centre Chretien" className="brand-logo animated-logo" />
           <div>
             <p className="tag">Impact Centre Chretien</p>
             <h1>{translate("welcome_title")}</h1>

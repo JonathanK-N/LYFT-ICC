@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import type { Language } from '../types';
-import './styles/AuthForms.css';
+import './styles/RegisterPage.css';
 
 export default function RegisterPage() {
-  const { currentUser, registerMember } = useAppState();
+  const { registerMember } = useAppState();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState('');
@@ -17,12 +17,6 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (currentUser) {
-      navigate('/home', { replace: true });
-    }
-  }, [currentUser, navigate]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,15 +62,16 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-wrapper">
-      <section className="auth-card-simple">
-        <div>
-          <h1>Creer un compte</h1>
-          <p className="description">
-            Rejoignez la communaute Lyft-ICC et accedez a votre portail.
-          </p>
-        </div>
-        <form className="auth-form-simple" onSubmit={handleSubmit}>
+    <div className="register-wrapper">
+      <div className="register-header">
+        <img src="/icons/icon-192.png" alt="Lyft-ICC" className="register-logo" />
+        <h1>Créer un compte</h1>
+        <p className="register-subtitle">
+          Rejoignez la communauté Lyft-ICC et accédez à votre portail.
+        </p>
+      </div>
+      <section className="register-card">
+        <form className="register-form" onSubmit={handleSubmit}>
           <label htmlFor="fullName">Nom complet</label>
           <input
             id="fullName"
@@ -131,15 +126,15 @@ export default function RegisterPage() {
             placeholder="********"
           />
 
-          {error ? <p className="auth-error">{error}</p> : null}
-          <div className="auth-actions">
+          {error ? <p className="register-error">{error}</p> : null}
+          <div className="register-actions">
             <button type="submit" disabled={loading}>
-              {loading ? 'Creation...' : "S'inscrire"}
+              {loading ? 'Création...' : "S'inscrire"}
             </button>
           </div>
         </form>
-        <div className="auth-links">
-          <span>Deja inscrit ?</span>
+        <div className="register-links">
+          <span>Déjà inscrit ?</span>
           <Link to="/login">Se connecter</Link>
         </div>
       </section>
