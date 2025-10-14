@@ -8,7 +8,8 @@ import { useDriverLocation } from '../hooks/useDriverLocation';
 import { useAppState } from '../contexts/AppStateContext';
 import '../pages/styles/MapPage.css';
 
-const MAP_CENTER: [number, number] = [2.3522, 48.8566];
+// Impact Centre Chrétien - 219 rue Queen, Sherbrooke, QC, Canada
+const MAP_CENTER: [number, number] = [-71.8998, 45.4042];
 
 export default function MapPage() {
   const { rides, currentUser } = useAppState();
@@ -37,10 +38,22 @@ export default function MapPage() {
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: MAP_CENTER,
-        zoom: 11.5,
+        zoom: 12,
       });
       mapRef.current = map;
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      
+      // Géolocalisation automatique
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            map.flyTo({ center: [longitude, latitude], zoom: 13 });
+          },
+          () => console.warn('[map] Géolocalisation refusée, utilisation de l\'église ICC par défaut')
+        );
+      }
+      
       setMapError(null);
     } catch (error) {
       console.warn('[map] init failed', error);
