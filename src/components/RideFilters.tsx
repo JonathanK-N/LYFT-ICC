@@ -26,16 +26,16 @@ export default function RideFilters({ value, onChange }: RideFiltersProps) {
   };
 
   return (
-    <div className='ride-filters'>
+    <div className="ride-filters">
       <input
-        aria-label='Recherche'
-        placeholder='Ville, église ou conducteur'
+        aria-label="Search"
+        placeholder="City, church or driver"
         value={local.query}
         onChange={handleChange('query')}
       />
       <input
-        aria-label='Date'
-        type='date'
+        aria-label="Date"
+        type="date"
         value={local.date}
         onChange={handleChange('date')}
       />
