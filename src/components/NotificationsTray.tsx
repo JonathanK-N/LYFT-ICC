@@ -9,7 +9,7 @@ export default function NotificationsTray() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const hidden = ['/', '/auth'].includes(location.pathname);
+  const hidden = ['/', '/login', '/register'].includes(location.pathname);
   if (hidden || notifications.length === 0) {
     return null;
   }

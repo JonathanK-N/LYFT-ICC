@@ -18,10 +18,10 @@ export default function WelcomePage() {
           </div>
         </div>
         <div className="hero-actions">
-          <button type="button" onClick={() => navigate("/auth")}>
+          <button type="button" onClick={() => navigate("/register")}>
             {translate("get_started")}
           </button>
-          <button type="button" className="secondary" onClick={() => navigate("/auth")}>
+          <button type="button" className="secondary" onClick={() => navigate("/login")}>
             {translate("login")}
           </button>
         </div>

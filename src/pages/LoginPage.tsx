@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import './styles/AuthForms.css';
 
 export default function LoginPage() {
-  const { login } = useAppState();
+  const { currentUser, login } = useAppState();
   const navigate = useNavigate();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/home', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,12 +36,12 @@ export default function LoginPage() {
       });
       if (!member) {
         setError('Incorrect credentials. Try again or create an account.');
-        setLoading(false);
         return;
       }
       navigate('/home', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in.');
+    } finally {
       setLoading(false);
     }
   };
@@ -63,13 +69,13 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="••••••"
+            placeholder="********"
           />
 
           {error ? <p className="auth-error">{error}</p> : null}
           <div className="auth-actions">
             <button type="submit" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>

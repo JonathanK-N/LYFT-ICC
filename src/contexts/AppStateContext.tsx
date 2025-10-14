@@ -42,6 +42,7 @@ import {
 } from '../services/firebase/client';
 import { listenForegroundMessages } from '../services/firebase/messaging';
 import {
+  fetchUserProfile,
   registerWithEmail,
   signInWithEmail,
   signOutCurrentUser,
@@ -411,7 +412,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [members, rides]);
 
   const registerMember = async (payload: RegisterPayload) => {
-
     if (firebaseEnabled && payload.email && payload.password) {
       const language = payload.language ?? 'fr';
       const profile = await registerWithEmail({
@@ -430,6 +430,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         churchCodeValidated: true,
         photoUrl: payload.avatar,
         phone: payload.phone,
+      });
+      setMembers((prev) => {
+        const exists = prev.some((member) => member.id === mapped.id);
+        if (exists) {
+          return prev.map((member) =>
+            member.id === mapped.id ? { ...member, ...mapped } : member,
+          );
+        }
+        return [mapped, ...prev];
       });
       setCurrentUser(mapped);
       return mapped;
@@ -462,7 +471,50 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         password,
       });
       const uid = credential.user.uid;
-      const member = members.find((item) => item.id === uid);
+      let member = members.find((item) => item.id === uid);
+      if (!member) {
+        const profile = await fetchUserProfile(uid);
+        if (profile) {
+          const mapped = mapProfileToMember(profile);
+          member = mapped;
+          setMembers((prev) => {
+            const exists = prev.some((item) => item.id === mapped.id);
+            if (exists) {
+              return prev.map((item) =>
+                item.id === mapped.id ? { ...item, ...mapped } : item,
+              );
+            }
+            return [mapped, ...prev];
+          });
+        } else {
+          const fallback: Member = {
+            id: uid,
+            name:
+              credential.user.displayName ??
+              credential.user.email ??
+              'Lyft-ICC member',
+            email: credential.user.email ?? undefined,
+            phone: credential.user.phoneNumber ?? undefined,
+            avatar: credential.user.photoURL ?? undefined,
+            role: 'passenger',
+            verified: true,
+            language: 'fr',
+            badges: [],
+            ridesGiven: 0,
+            ridesTaken: 0,
+            emergencyContact: undefined,
+            password: undefined,
+          };
+          member = fallback;
+          setMembers((prev) => {
+            const exists = prev.some((item) => item.id === fallback.id);
+            if (exists) {
+              return prev;
+            }
+            return [fallback, ...prev];
+          });
+        }
+      }
       setCurrentUser(member);
       return member;
     }
