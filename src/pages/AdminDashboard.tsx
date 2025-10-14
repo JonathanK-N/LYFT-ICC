@@ -1,299 +1,283 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import type { Variants } from 'framer-motion';
-import {
-  FiActivity,
-  FiAlertCircle,
-  FiBarChart2,
-  FiMail,
-  FiSend,
-  FiUsers,
-} from 'react-icons/fi';
 import { useAppState } from '../contexts/AppStateContext';
-import { useLanguage } from '../contexts/LanguageContext';
 import '../pages/styles/AdminDashboard.css';
 
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (index = 1) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.4,
-      delay: 0.08 * index,
-      ease: 'easeOut' as const,
-    },
-  }),
-};
-
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      delayChildren: 0.12,
-      staggerChildren: 0.08,
-    },
-  },
-};
-
-const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.3,
-      ease: 'easeOut' as const,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: 10,
-    transition: {
-      duration: 0.2,
-      ease: 'easeIn' as const,
-    },
-  },
-};
-
 export default function AdminDashboard() {
-  const {
-    currentUser,
-    members,
-    rides,
-    adminStats,
-    sendAnnouncement,
-    notifications,
-  } = useAppState();
-  const { translate } = useLanguage();
+  const { currentUser, members, rides, events, adminStats, sendAnnouncement, createEvent } = useAppState();
+  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'members' | 'rides'>('overview');
   const [message, setMessage] = useState('');
-
-  const topMembers = useMemo(() => members.slice(0, 6), [members]);
-  const recentRides = useMemo(() => rides.slice(0, 6), [rides]);
-  const recentNotifications = useMemo(
-    () => notifications.slice(0, 5),
-    [notifications],
-  );
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    location: '',
+    startTime: '',
+    category: 'service' as 'service' | 'conference' | 'social',
+  });
 
   if (!currentUser || currentUser.role !== 'admin') {
-    return null;
+    return (
+      <div className="admin-access-denied">
+        <h1>Accès refusé</h1>
+        <p>Vous devez être administrateur pour accéder à cette page.</p>
+      </div>
+    );
   }
 
-  const handleAnnouncement = async (event: FormEvent<HTMLFormElement>) => {
+  const handleAnnouncement = async (event: FormEvent) => {
     event.preventDefault();
     if (!message.trim()) return;
     await sendAnnouncement(message);
     setMessage('');
   };
 
+  const handleCreateEvent = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!eventForm.title || !eventForm.location || !eventForm.startTime) return;
+    
+    await createEvent({
+      title: eventForm.title,
+      description: eventForm.description,
+      location: eventForm.location,
+      startTime: eventForm.startTime,
+      category: eventForm.category,
+      icon: eventForm.category === 'service' ? '⛪' : eventForm.category === 'conference' ? '🎤' : '🎉',
+    });
+    
+    setEventForm({
+      title: '',
+      description: '',
+      location: '',
+      startTime: '',
+      category: 'service',
+    });
+  };
+
   return (
-    <section className="admin-screen">
-      <motion.article
-        className="panel admin-hero"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">
-              <FiBarChart2 /> {translate('admin_portal')}
-            </p>
-            <p className="subtitle">
-              Statistiques cles et surveillance en direct de la communaute ICC.
-            </p>
-          </div>
-        </header>
-        <motion.div
-          className="admin-metrics"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-        >
-          {[
-            { label: translate('members'), value: adminStats.totalMembers },
-            { label: translate('rides'), value: adminStats.totalRides },
-            { label: 'Rides semaine', value: adminStats.ridesThisWeek },
-            { label: 'Actifs semaine', value: adminStats.activeThisWeek },
-          ].map((metric) => (
-            <motion.div key={metric.label} variants={staggerItem}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-            </motion.div>
-          ))}
-        </motion.div>
-      </motion.article>
+    <section className="admin-dashboard">
+      <div className="admin-header">
+        <h1>Administration ICC</h1>
+        <p>Gestion des événements, membres et trajets</p>
+      </div>
 
-      <motion.article
-        className="panel admin-members"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={2}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">
-              <FiUsers /> {translate('members')}
-            </p>
-            <p className="subtitle">Derniers profils verifies.</p>
-          </div>
-        </header>
-        <motion.div
-          className="admin-table"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
+      <div className="admin-tabs">
+        <button
+          className={activeTab === 'overview' ? 'active' : ''}
+          onClick={() => setActiveTab('overview')}
         >
-          {topMembers.map((member) => (
-            <motion.div
-              key={member.id}
-              className="admin-row"
-              variants={staggerItem}
-              whileHover={{ translateY: -3 }}
-            >
-              <span className="avatar">
-                {member.avatar ? (
-                  <img src={member.avatar} alt={member.name} />
-                ) : (
-                  member.name[0]
-                )}
-              </span>
-              <div className="cell main">
-                <strong>{member.name}</strong>
-                <small>
-                  {member.role} | {member.language.toUpperCase()}
-                </small>
+          Vue d'ensemble
+        </button>
+        <button
+          className={activeTab === 'events' ? 'active' : ''}
+          onClick={() => setActiveTab('events')}
+        >
+          Événements
+        </button>
+        <button
+          className={activeTab === 'members' ? 'active' : ''}
+          onClick={() => setActiveTab('members')}
+        >
+          Membres
+        </button>
+        <button
+          className={activeTab === 'rides' ? 'active' : ''}
+          onClick={() => setActiveTab('rides')}
+        >
+          Trajets
+        </button>
+      </div>
+
+      {activeTab === 'overview' && (
+        <div className="admin-content">
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h3>Membres</h3>
+              <div className="stat-number">{adminStats.totalMembers}</div>
+              <p>Actifs cette semaine: {adminStats.activeThisWeek}</p>
+            </div>
+            <div className="stat-card">
+              <h3>Trajets</h3>
+              <div className="stat-number">{adminStats.totalRides}</div>
+              <p>Cette semaine: {adminStats.ridesThisWeek}</p>
+            </div>
+            <div className="stat-card">
+              <h3>Conducteurs</h3>
+              <div className="stat-number">{adminStats.drivers}</div>
+            </div>
+            <div className="stat-card">
+              <h3>Passagers</h3>
+              <div className="stat-number">{adminStats.passengers}</div>
+            </div>
+          </div>
+
+          <div className="announcement-section">
+            <h2>Envoyer une annonce</h2>
+            <form onSubmit={handleAnnouncement}>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Message à diffuser à tous les membres..."
+                rows={4}
+                required
+              />
+              <button type="submit">Envoyer l'annonce</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'events' && (
+        <div className="admin-content">
+          <div className="section-header">
+            <h2>Gestion des événements</h2>
+            <p>Créez et gérez les événements ICC</p>
+          </div>
+
+          <div className="create-event-form">
+            <h3>Créer un nouvel événement</h3>
+            <form onSubmit={handleCreateEvent}>
+              <div className="form-row">
+                <div className="form-field">
+                  <label>Titre de l'événement</label>
+                  <input
+                    type="text"
+                    value={eventForm.title}
+                    onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+                    placeholder="Culte dominical, Conférence..."
+                    required
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Catégorie</label>
+                  <select
+                    value={eventForm.category}
+                    onChange={(e) => setEventForm({...eventForm, category: e.target.value as any})}
+                  >
+                    <option value="service">Service religieux</option>
+                    <option value="conference">Conférence</option>
+                    <option value="social">Événement social</option>
+                  </select>
+                </div>
               </div>
-              <span
-                className={`status-pill ${member.verified ? 'online' : 'offline'}`}
-              >
-                {member.verified ? 'Verifie' : 'En attente'}
-              </span>
-            </motion.div>
-          ))}
-        </motion.div>
-      </motion.article>
-
-      <motion.article
-        className="panel admin-rides"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={3}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">
-              <FiActivity /> {translate('rides')}
-            </p>
-            <p className="subtitle">Surveillez les trajets recents.</p>
-          </div>
-        </header>
-        <motion.div
-          className="admin-table"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-        >
-          {recentRides.map((ride) => (
-            <motion.div
-              key={ride.id}
-              className="admin-row"
-              variants={staggerItem}
-              whileHover={{ translateY: -3 }}
-            >
-              <div className="cell main">
-                <strong>{ride.driverName}</strong>
-                <small>
-                  {ride.origin}
-                  {' -> '}
-                  {ride.destination}
-                </small>
+              
+              <div className="form-field">
+                <label>Description</label>
+                <textarea
+                  value={eventForm.description}
+                  onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+                  placeholder="Description de l'événement..."
+                  rows={3}
+                />
               </div>
-              <span className={`status-pill status-${ride.status}`}>
-                {ride.status}
-              </span>
-            </motion.div>
-          ))}
-        </motion.div>
-      </motion.article>
 
-      <motion.article
-        className="panel admin-announcement"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={4}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">
-              <FiMail /> {translate('announcements')}
-            </p>
-            <p className="subtitle">
-              Diffusez un message a tous les membres verifies.
-            </p>
-          </div>
-        </header>
-        <form className="form-grid" onSubmit={handleAnnouncement}>
-          <div className="form-field">
-            <label htmlFor="announcement">
-              {translate('message_placeholder')}
-            </label>
-            <textarea
-              id="announcement"
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Annoncez une celebration, une urgence ou un remerciement."
-            />
-          </div>
-          <motion.button
-            type="submit"
-            className="cta"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <FiSend /> {translate('send_announcement')}
-          </motion.button>
-        </form>
-      </motion.article>
+              <div className="form-row">
+                <div className="form-field">
+                  <label>Adresse du lieu</label>
+                  <input
+                    type="text"
+                    value={eventForm.location}
+                    onChange={(e) => setEventForm({...eventForm, location: e.target.value})}
+                    placeholder="219 rue Queen, Sherbrooke, QC"
+                    required
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Date et heure</label>
+                  <input
+                    type="datetime-local"
+                    value={eventForm.startTime}
+                    onChange={(e) => setEventForm({...eventForm, startTime: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
 
-      <motion.article
-        className="panel admin-moderation"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={5}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">
-              <FiAlertCircle /> Moderation
-            </p>
-            <p className="subtitle">
-              Derniers messages ou alertes a surveiller.
-            </p>
+              <button type="submit" className="create-btn">Créer l'événement</button>
+            </form>
           </div>
-        </header>
-        <ul className="admin-feed">
-          <AnimatePresence initial={false}>
-            {recentNotifications.map((notification) => (
-              <motion.li
-                key={notification.id}
-                variants={staggerItem}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                {notification.message}
-              </motion.li>
+
+          <div className="events-list">
+            <h3>Événements existants</h3>
+            {events.length === 0 ? (
+              <p>Aucun événement créé pour le moment.</p>
+            ) : (
+              <div className="events-grid">
+                {events.map((event) => (
+                  <div key={event.id} className="event-card">
+                    <h4>{event.title}</h4>
+                    <p>{event.description}</p>
+                    <div className="event-details">
+                      <span>📍 {event.location}</span>
+                      <span>📅 {new Date(event.startTime).toLocaleString()}</span>
+                      <span className={`category-${event.category}`}>{event.category}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'members' && (
+        <div className="admin-content">
+          <h2>Gestion des membres ({members.length})</h2>
+          <div className="members-table">
+            <div className="table-header">
+              <span>Membre</span>
+              <span>Rôle</span>
+              <span>Contact</span>
+              <span>Statut</span>
+            </div>
+            {members.map((member) => (
+              <div key={member.id} className="table-row">
+                <div className="member-info">
+                  <div className="member-avatar">
+                    {member.avatar ? (
+                      <img src={member.avatar} alt={member.name} />
+                    ) : (
+                      member.name[0]
+                    )}
+                  </div>
+                  <span>{member.name}</span>
+                </div>
+                <span className={`role-${member.role}`}>{member.role}</span>
+                <span>{member.email || member.phone}</span>
+                <span className={`status ${member.verified ? 'verified' : 'pending'}`}>
+                  {member.verified ? 'Vérifié' : 'En attente'}
+                </span>
+              </div>
             ))}
-          </AnimatePresence>
-        </ul>
-      </motion.article>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'rides' && (
+        <div className="admin-content">
+          <h2>Gestion des trajets ({rides.length})</h2>
+          <div className="rides-table">
+            <div className="table-header">
+              <span>Conducteur</span>
+              <span>Trajet</span>
+              <span>Départ</span>
+              <span>Places</span>
+              <span>Statut</span>
+            </div>
+            {rides.map((ride) => (
+              <div key={ride.id} className="table-row">
+                <span>{ride.driverName}</span>
+                <div className="route-info">
+                  <div>{ride.origin}</div>
+                  <div>→ {ride.destination}</div>
+                </div>
+                <span>{new Date(ride.departureTime).toLocaleString()}</span>
+                <span>{ride.seatsBooked}/{ride.seatsAvailable}</span>
+                <span className={`status-${ride.status}`}>{ride.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

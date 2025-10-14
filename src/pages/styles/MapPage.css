@@ -179,6 +179,37 @@
   color: var(--color-text-muted);
 }
 
+.event-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.event-filter label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.event-filter select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.selected-event {
+  padding: 12px;
+  background: #e0e7ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+}
+
 @media (min-width: 960px) {
   .map-layout {
     grid-template-columns: 1.35fr 1fr;

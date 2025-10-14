@@ -103,6 +103,7 @@ interface AppStateContextValue {
   ) => void;
   sendAnnouncement: (message: string) => Promise<void>;
   updateDriverLocation: (input: DriverLocationInput) => Promise<void>;
+  createEvent: (event: any) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(
@@ -841,6 +842,28 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     await addNotification(notification);
   };
 
+  const createEvent = async (eventData: any) => {
+    if (firebaseEnabled) {
+      const eventRef = doc(collection(firebaseServices.db, 'events'));
+      const entity = {
+        ...eventData,
+        id: eventRef.id,
+        startTime: Timestamp.fromDate(new Date(eventData.startTime)),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      await setDoc(eventRef, entity);
+      return;
+    }
+
+    const newEvent = {
+      id: `event-${Math.random().toString(36).slice(2, 10)}`,
+      ...eventData,
+      startTime: new Date(eventData.startTime).toISOString(),
+    };
+    setEvents((prev) => [newEvent, ...prev]);
+  };
+
   const value = useMemo<AppStateContextValue>(
     () => ({
       members,
@@ -864,6 +887,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       sendChatMessage,
       sendAnnouncement,
       updateDriverLocation,
+      createEvent,
     }),
     [
       members,
@@ -887,6 +911,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       sendChatMessage,
       sendAnnouncement,
       updateDriverLocation,
+      createEvent,
     ],
   );
 

@@ -1,7 +1,8 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import OfferRideForm from '../components/OfferRideForm';
+import RequestRideForm from '../components/RequestRideForm';
 import type { RideFilterValue } from '../components/RideFilters';
 import RideFilters from '../components/RideFilters';
 import { useDriverLocation } from '../hooks/useDriverLocation';
@@ -12,14 +13,15 @@ import '../pages/styles/MapPage.css';
 const MAP_CENTER: [number, number] = [-71.8998, 45.4042];
 
 export default function MapPage() {
-  const { rides, currentUser } = useAppState();
+  const { rides, events, currentUser } = useAppState();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'all' | 'driver'>('all');
+  const [viewMode, setViewMode] = useState<'search' | 'offer'>('search');
   const [filters, setFilters] = useState<RideFilterValue>({ query: '', date: '' });
   const [shareLocation, setShareLocation] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<string>('');
 
   useDriverLocation({ enabled: shareLocation, interval: 15000 });
 
@@ -57,7 +59,7 @@ export default function MapPage() {
       setMapError(null);
     } catch (error) {
       console.warn('[map] init failed', error);
-      setMapError('Impossible de charger la carte. VÃ©rifiez le token Mapbox.');
+      setMapError('Impossible de charger la carte. Vérifiez le token Mapbox.');
     }
 
     return () => {
@@ -70,7 +72,13 @@ export default function MapPage() {
 
   const filteredRides = useMemo(() => {
     return rides.filter((ride) => {
-      if (mode === 'driver' && ride.driverId !== currentUser?.id) {
+      if (viewMode === 'offer' && ride.driverId !== currentUser?.id) {
+        return false;
+      }
+      if (viewMode === 'search' && ride.driverId === currentUser?.id) {
+        return false;
+      }
+      if (selectedEvent && ride.eventId !== selectedEvent) {
         return false;
       }
       if (filters.query) {
@@ -88,7 +96,7 @@ export default function MapPage() {
       }
       return true;
     });
-  }, [rides, mode, filters, currentUser?.id]);
+  }, [rides, viewMode, selectedEvent, filters, currentUser?.id]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -117,32 +125,30 @@ export default function MapPage() {
   return (
     <section className="map-page">
       <div className="map-page__header">
-        <h1>Carte des trajets</h1>
-        <p>Filtrez les trajets disponibles et suivez lÂ’activitÃ© des conducteurs en direct.</p>
+        <h1>{viewMode === 'search' ? 'Chercher un trajet' : 'Offrir un trajet'}</h1>
+        <p>{viewMode === 'search' ? 'Trouvez un trajet pour vous rendre à un événement ICC' : 'Proposez un trajet pour un événement ICC'}</p>
         <div className="map-controls">
           <button
             type="button"
-            className={mode === 'all' ? 'active' : ''}
-            onClick={() => setMode('all')}
+            className={viewMode === 'search' ? 'active' : ''}
+            onClick={() => setViewMode('search')}
           >
-            Tous les trajets
+            Chercher un trajet
           </button>
-          {isDriver ? (
-            <button
-              type="button"
-              className={mode === 'driver' ? 'active' : ''}
-              onClick={() => setMode('driver')}
-            >
-              Mes trajets conducteurs
-            </button>
-          ) : null}
-          {isDriver ? (
+          <button
+            type="button"
+            className={viewMode === 'offer' ? 'active' : ''}
+            onClick={() => setViewMode('offer')}
+          >
+            Offrir un trajet
+          </button>
+          {isDriver && viewMode === 'offer' ? (
             <button
               type="button"
               className={`share-location ${shareLocation ? 'active' : ''}`}
               onClick={() => setShareLocation((prev) => !prev)}
             >
-              {shareLocation ? 'ArrÃªter le partage' : 'Partager ma position'}
+              {shareLocation ? 'Arrêter le partage' : 'Partager ma position'}
             </button>
           ) : null}
         </div>
@@ -158,12 +164,30 @@ export default function MapPage() {
             )}
           </div>
 
+          <div className="event-filter">
+            <label htmlFor="event-select">Événement ICC</label>
+            <select
+              id="event-select"
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+            >
+              <option value="">Tous les événements</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title} - {new Date(event.startTime).toLocaleDateString()}
+                </option>
+              ))}
+            </select>
+          </div>
           <RideFilters value={filters} onChange={setFilters} />
 
           <div className="ride-list">
             {filteredRides.length === 0 ? (
               <div className="ride-empty">
-                Aucun trajet ne correspond Ã  vos critÃ¨res pour le moment.
+                {viewMode === 'search' 
+                  ? 'Aucun trajet disponible pour vos critères.'
+                  : 'Vous n\'avez pas encore proposé de trajet.'
+                }
               </div>
             ) : (
               filteredRides.map((ride) => (
@@ -172,7 +196,7 @@ export default function MapPage() {
                     <div>
                       <strong>{ride.origin}</strong>
                       <span>
-                        DÃ©part {new Date(ride.departureTime).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                        Départ {new Date(ride.departureTime).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div>
@@ -184,10 +208,23 @@ export default function MapPage() {
                     <div className="ride-meta__info">
                       <span>{ride.driverName}</span>
                       <span>
-                        {ride.vehicle.make} {ride.vehicle.model} Â· {ride.vehicle.color}
+                        {ride.vehicle.make} {ride.vehicle.model} · {ride.vehicle.color}
                       </span>
                     </div>
-                    <button type="button">Contacter</button>
+                    {viewMode === 'search' && (
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const form = document.querySelector('#ride-select') as HTMLSelectElement;
+                          if (form) form.value = ride.id;
+                        }}
+                      >
+                        Sélectionner
+                      </button>
+                    )}
+                    {viewMode === 'offer' && (
+                      <button type="button">Gérer</button>
+                    )}
                   </div>
                 </article>
               ))
@@ -196,7 +233,11 @@ export default function MapPage() {
         </div>
 
         <div className="form-column">
-          <OfferRideForm />
+          {viewMode === 'offer' ? (
+            <OfferRideForm selectedEvent={selectedEvent} />
+          ) : (
+            <RequestRideForm selectedEvent={selectedEvent} />
+          )}
         </div>
       </div>
     </section>

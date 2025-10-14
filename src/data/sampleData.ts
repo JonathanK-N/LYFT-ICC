@@ -4,7 +4,20 @@ export const verificationCodes: { code: string; label: string }[] = [];
 
 export const acceptedQrTokens: string[] = [];
 
-export const sampleMembers: Member[] = [];
+export const sampleMembers: Member[] = [
+  {
+    id: 'admin-1',
+    name: 'Administrateur ICC',
+    email: 'admin@impactcentrechretien.org',
+    role: 'admin',
+    verified: true,
+    language: 'fr',
+    badges: [],
+    ridesGiven: 0,
+    ridesTaken: 0,
+    password: 'admin123',
+  },
+];
 
 export const sampleRides: Ride[] = [];
 

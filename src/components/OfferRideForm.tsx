@@ -20,8 +20,12 @@ const initialState: FormState = {
   notes: '',
 };
 
-export default function OfferRideForm() {
-  const { currentUser, createRide } = useAppState();
+interface OfferRideFormProps {
+  selectedEvent?: string;
+}
+
+export default function OfferRideForm({ selectedEvent }: OfferRideFormProps) {
+  const { currentUser, createRide, events } = useAppState();
   const [form, setForm] = useState<FormState>(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +50,8 @@ export default function OfferRideForm() {
       setError('You need a driver profile to offer a ride.');
       return;
     }
-    if (!form.origin || !form.destination || !form.departure) {
-      setError('Please fill origin, destination and departure time.');
+    if (!form.origin || (!form.destination && !selectedEvent) || !form.departure) {
+      setError('Veuillez remplir l\'origine, la destination et l\'heure de départ.');
       return;
     }
 
@@ -58,10 +62,19 @@ export default function OfferRideForm() {
 
     setLoading(true);
     try {
-      const [origin, destination] = await Promise.all([
-        geocodeAddress(form.origin, mapboxToken),
-        geocodeAddress(form.destination, mapboxToken),
-      ]);
+      const origin = await geocodeAddress(form.origin, mapboxToken);
+      let destination;
+      
+      if (selectedEvent) {
+        const event = events.find(e => e.id === selectedEvent);
+        if (!event?.location) {
+          setError('L\'événement sélectionné n\'a pas d\'adresse définie.');
+          return;
+        }
+        destination = await geocodeAddress(event.location, mapboxToken);
+      } else {
+        destination = await geocodeAddress(form.destination, mapboxToken);
+      }
 
       await createRide({
         origin,
@@ -69,6 +82,7 @@ export default function OfferRideForm() {
         departureTime: new Date(form.departure).toISOString(),
         seatsAvailable: form.seats,
         notes: form.notes || undefined,
+        eventId: selectedEvent || undefined,
       });
 
       setSuccess('Ride published successfully.');
@@ -99,8 +113,14 @@ export default function OfferRideForm() {
       ) : (
         <>
           <p className="offer-ride__info">
-            Provide the main details. Passengers will see your ride immediately.
+            Proposez un trajet pour un événement ICC. Les passagers verront votre offre immédiatement.
           </p>
+          {selectedEvent && (
+            <div className="selected-event">
+              <strong>Événement sélectionné:</strong>
+              {events.find(e => e.id === selectedEvent)?.title}
+            </div>
+          )}
           <form className="offer-ride__form" onSubmit={handleSubmit}>
             <label htmlFor="origin">Origin</label>
             <input
@@ -112,13 +132,22 @@ export default function OfferRideForm() {
             />
 
             <label htmlFor="destination">Destination</label>
-            <input
-              id="destination"
-              value={form.destination}
-              onChange={handleChange('destination')}
-              placeholder="e.g. Impact Centre Chretien, Evry"
-              required
-            />
+            {selectedEvent ? (
+              <input
+                id="destination"
+                value={events.find(e => e.id === selectedEvent)?.location || ''}
+                disabled
+                style={{ background: '#f3f4f6', color: '#6b7280' }}
+              />
+            ) : (
+              <input
+                id="destination"
+                value={form.destination}
+                onChange={handleChange('destination')}
+                placeholder="e.g. Impact Centre Chretien, Evry"
+                required
+              />
+            )}
 
             <label htmlFor="departure">Departure (date & time)</label>
             <input
