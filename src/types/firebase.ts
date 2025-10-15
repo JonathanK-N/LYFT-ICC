@@ -19,7 +19,7 @@ export interface UserProfile {
   phone?: string;
   role: UserRole;
   photoUrl?: string;
-  language: 'fr' | 'en';
+  language: 'fr';
   churchCodeValidated: boolean;
   vehicle?: VehicleInfo;
   badges?: string[];

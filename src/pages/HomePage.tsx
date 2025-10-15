@@ -18,13 +18,13 @@ export default function HomePage() {
 
   const handleRequestRide = () => {
     if (selectedEvent) {
-      navigate(`/ride-request/${selectedEvent}`);
+      navigate(`/ride-map/${selectedEvent}/request`);
     }
   };
 
   const handleOfferRide = () => {
     if (selectedEvent) {
-      navigate(`/ride-offer/${selectedEvent}`);
+      navigate(`/ride-map/${selectedEvent}/offer`);
     }
   };
 

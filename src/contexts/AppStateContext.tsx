@@ -55,7 +55,6 @@ interface RegisterPayload {
   phone?: string;
   password?: string;
   avatar?: string;
-  language?: Language;
 }
 
 interface LoginPayload {
@@ -453,7 +452,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       avatar: payload.avatar,
       role: 'passenger',
       verified: true,
-      language: payload.language ?? 'fr',
+      language: 'fr',
       badges: [],
       ridesGiven: 0,
       ridesTaken: 0,

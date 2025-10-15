@@ -1,6 +1,6 @@
 export type UserRole = 'passenger' | 'driver' | 'admin';
 
-export type Language = 'fr' | 'en';
+export type Language = 'fr';
 
 export interface VehicleInfo {
   make: string;
@@ -18,7 +18,7 @@ export interface Member {
   avatar?: string;
   role: UserRole;
   verified: boolean;
-  language: Language;
+  language: 'fr';
   vehicle?: VehicleInfo;
   badges: string[];
   ridesGiven: number;

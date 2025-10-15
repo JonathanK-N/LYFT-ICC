@@ -17,16 +17,14 @@ export default function BottomNav() {
 
   const items = useMemo<NavItem[]>(() => {
     const base: NavItem[] = [
-      { label: translate('dashboard'), route: '/home' },
-      { label: translate('map'), route: '/map' },
-      { label: translate('events'), route: '/events' },
-      { label: translate('profile'), route: '/profile' },
+      { label: 'Accueil', route: '/home' },
+      { label: 'Profil', route: '/profile' },
     ];
     if (currentUser?.role === 'admin') {
-      base.push({ label: translate('admin_portal'), route: '/admin' });
+      base.push({ label: 'Admin', route: '/admin' });
     }
     return base;
-  }, [currentUser?.role, translate]);
+  }, [currentUser?.role]);
 
   return (
     <nav className="bottom-nav" aria-label="Navigation principale">
