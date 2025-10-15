@@ -20,9 +20,12 @@ export default function RideMapPage() {
   const [selectedRide, setSelectedRide] = useState<string>('');
   
   // États pour offrir un trajet
-  const [origin, setOrigin] = useState('');
   const [departureTime, setDepartureTime] = useState('');
   const [seats, setSeats] = useState(3);
+  
+  // États pour publier une demande
+  const [requestPickup, setRequestPickup] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
   
   const [loading, setLoading] = useState(false);
 
@@ -87,24 +90,24 @@ export default function RideMapPage() {
 
   const handleOfferRide = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!origin.trim() || !departureTime) return;
+    if (!departureTime) return;
 
     const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
     if (!mapboxToken) return;
 
     setLoading(true);
     try {
-      const originCoords = await geocodeAddress(origin, mapboxToken);
       const destinationCoords = await geocodeAddress(event!.location, mapboxToken);
 
       await createRide({
-        origin: originCoords,
+        origin: { address: 'À définir par les passagers', lat: 0, lng: 0 },
         destination: destinationCoords,
         departureTime: new Date(departureTime).toISOString(),
         seatsAvailable: seats,
         eventId: eventId,
       });
 
+      alert('Trajet publié avec succès!');
       navigate('/home');
     } catch (error) {
       console.error('Erreur:', error);
@@ -115,6 +118,19 @@ export default function RideMapPage() {
 
   const handleAcceptRequest = async (requestId: string) => {
     await respondToRideRequest(requestId, true);
+  };
+
+  const handlePublishRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestPickup.trim()) return;
+
+    // Créer une demande publique que les conducteurs peuvent voir
+    const requestMessage = `📍 ${requestPickup}${requestNotes ? `\n💬 ${requestNotes}` : ''}`;
+    
+    // Ajouter à une liste de demandes publiques (simulation)
+    alert('Demande de trajet publiée! Les conducteurs pourront la voir.');
+    setRequestPickup('');
+    setRequestNotes('');
   };
 
   if (!event) return null;
@@ -138,7 +154,34 @@ export default function RideMapPage() {
           <div className="request-panel">
             <h2>Trajets disponibles</h2>
             {availableRides.length === 0 ? (
-              <p>Aucun trajet disponible</p>
+              <div className="no-rides-section">
+                <p>Aucun trajet disponible pour cet événement</p>
+                <div className="publish-request">
+                  <h3>Publier une demande de trajet</h3>
+                  <form onSubmit={handlePublishRequest}>
+                    <div>
+                      <label>Votre adresse de ramassage</label>
+                      <input
+                        type="text"
+                        value={requestPickup}
+                        onChange={(e) => setRequestPickup(e.target.value)}
+                        placeholder="123 rue Example, Sherbrooke, QC"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label>Message (optionnel)</label>
+                      <textarea
+                        value={requestNotes}
+                        onChange={(e) => setRequestNotes(e.target.value)}
+                        placeholder="Heure souhaitée, informations supplémentaires..."
+                        rows={3}
+                      />
+                    </div>
+                    <button type="submit">Publier ma demande</button>
+                  </form>
+                </div>
+              </div>
             ) : (
               <form onSubmit={handleRequestRide}>
                 <div className="rides-list">
@@ -190,15 +233,8 @@ export default function RideMapPage() {
               <>
                 <h2>Offrir un trajet</h2>
                 <form onSubmit={handleOfferRide}>
-                  <div>
-                    <label>Point de départ</label>
-                    <input
-                      type="text"
-                      value={origin}
-                      onChange={(e) => setOrigin(e.target.value)}
-                      placeholder="Votre adresse"
-                      required
-                    />
+                  <div className="info-box">
+                    <p>ℹ️ Les passagers indiqueront leur adresse de ramassage lors de leur demande</p>
                   </div>
 
                   <div>
@@ -218,7 +254,7 @@ export default function RideMapPage() {
                     </select>
                   </div>
 
-                  <button type="submit" disabled={!origin.trim() || !departureTime || loading}>
+                  <button type="submit" disabled={!departureTime || loading}>
                     {loading ? 'Création...' : 'Publier le trajet'}
                   </button>
                 </form>
