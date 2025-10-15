@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import WelcomePage from './pages/WelcomePage';
-import AuthPage from './pages/AuthPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import MapPage from './pages/MapPage';
 import EventsPage from './pages/EventsPage';
@@ -21,8 +22,9 @@ function AppContainer() {
   const location = useLocation();
   const { currentUser } = useAppState();
 
-  const showNavigation = !['/', '/auth'].includes(location.pathname);
-  const showHeader = location.pathname !== '/';
+  const authPaths = ['/', '/login', '/register'];
+  const showNavigation = !authPaths.includes(location.pathname);
+  const showHeader = !authPaths.includes(location.pathname);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -49,22 +51,29 @@ function AppContainer() {
     >
       <Routes>
         <Route path="/" element={<WelcomePage />} />
-        <Route path="/auth" element={<AuthPage />} />
+        <Route
+          path="/login"
+          element={currentUser ? <Navigate to="/home" replace /> : <LoginPage />}
+        />
+        <Route
+          path="/register"
+          element={currentUser ? <Navigate to="/home" replace /> : <RegisterPage />}
+        />
         <Route
           path="/home"
-          element={currentUser ? <HomePage /> : <Navigate to="/auth" replace />}
+          element={currentUser ? <HomePage /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/map"
-          element={currentUser ? <MapPage /> : <Navigate to="/auth" replace />}
+          element={currentUser ? <MapPage /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/events"
-          element={currentUser ? <EventsPage /> : <Navigate to="/auth" replace />}
+          element={currentUser ? <EventsPage /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/profile"
-          element={currentUser ? <ProfilePage /> : <Navigate to="/auth" replace />}
+          element={currentUser ? <ProfilePage /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/admin"
@@ -72,7 +81,7 @@ function AppContainer() {
             currentUser?.role === 'admin' ? (
               <AdminDashboard />
             ) : (
-              <Navigate to={currentUser ? '/map' : '/auth'} replace />
+              <Navigate to={currentUser ? '/map' : '/login'} replace />
             )
           }
         />

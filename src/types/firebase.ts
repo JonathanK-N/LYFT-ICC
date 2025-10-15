@@ -28,6 +28,11 @@ export interface UserProfile {
     ridesGiven: number;
     rating?: number;
   };
+  currentLocation?: {
+    lat: number;
+    lng: number;
+    updatedAt: Timestamp;
+  };
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }
@@ -59,6 +64,11 @@ export interface RideEntity {
   note?: string;
   eventId?: string;
   passengers?: string[];
+  driverLocation?: {
+    lat: number;
+    lng: number;
+    updatedAt: Timestamp;
+  };
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }

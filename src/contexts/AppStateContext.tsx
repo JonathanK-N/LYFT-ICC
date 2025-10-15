@@ -3,11 +3,14 @@ import type { ReactNode } from 'react';
 import {
   collection,
   doc,
+  getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
-  updateDoc,
   Timestamp,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import type {
@@ -27,13 +30,11 @@ import type {
   VehicleInfo,
 } from '../types';
 import {
-  acceptedQrTokens,
   sampleEvents,
   sampleMembers,
   sampleNotifications,
   sampleRides,
   sampleStats,
-  verificationCodes,
 } from '../data/sampleData';
 import {
   firebaseServices,
@@ -41,6 +42,7 @@ import {
 } from '../services/firebase/client';
 import { listenForegroundMessages } from '../services/firebase/messaging';
 import {
+  fetchUserProfile,
   registerWithEmail,
   signInWithEmail,
   signOutCurrentUser,
@@ -53,14 +55,27 @@ interface RegisterPayload {
   phone?: string;
   password?: string;
   avatar?: string;
-  code?: string;
-  qrToken?: string;
   language?: Language;
 }
 
 interface LoginPayload {
   identifier: string;
   password?: string;
+}
+
+interface CreateRideInput {
+  origin: { address: string; lat: number; lng: number };
+  destination: { address: string; lat: number; lng: number };
+  departureTime: string;
+  seatsAvailable: number;
+  notes?: string;
+  eventId?: string;
+}
+
+interface DriverLocationInput {
+  lat: number;
+  lng: number;
+  updatedAt?: Date;
 }
 
 interface AppStateContextValue {
@@ -72,14 +87,11 @@ interface AppStateContextValue {
   chatMessages: Record<string, ChatMessage[]>;
   currentUser?: Member;
   adminStats: AdminStats;
-  verifyMembership: (code?: string, qrToken?: string) => boolean;
   registerMember: (payload: RegisterPayload) => Promise<Member | undefined>;
   login: (payload: LoginPayload) => Promise<Member | undefined>;
   logout: () => Promise<void>;
   upgradeToDriver: (vehicle: VehicleInfo) => Promise<void>;
-  createRide: (
-    ride: Omit<Ride, 'id' | 'driverName' | 'driverAvatar' | 'seatsBooked' | 'passengers'>,
-  ) => Promise<void>;
+  createRide: (input: CreateRideInput) => Promise<void>;
   requestRide: (rideId: string, message?: string) => Promise<void>;
   respondToRideRequest: (requestId: string, accepted: boolean) => Promise<void>;
   startRide: (rideId: string) => Promise<void>;
@@ -90,11 +102,25 @@ interface AppStateContextValue {
     message: Omit<ChatMessage, 'id' | 'timestamp' | 'rideId'>,
   ) => void;
   sendAnnouncement: (message: string) => Promise<void>;
+  updateDriverLocation: (input: DriverLocationInput) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(
   undefined,
 );
+
+const toIsoString = (value: Timestamp | Date | undefined | null): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (typeof (value as Timestamp).toDate === 'function') {
+    return (value as Timestamp).toDate().toISOString();
+  }
+  return undefined;
+};
 
 const mapProfileToMember = (profile: UserProfile): Member => ({
   id: profile.uid,
@@ -110,6 +136,10 @@ const mapProfileToMember = (profile: UserProfile): Member => ({
   ridesGiven: profile.stats?.ridesGiven ?? 0,
   ridesTaken: profile.stats?.ridesTaken ?? 0,
   emergencyContact: undefined,
+  password: undefined,
+  locationLat: profile.currentLocation?.lat,
+  locationLng: profile.currentLocation?.lng,
+  locationUpdatedAt: toIsoString(profile.currentLocation?.updatedAt),
 });
 
 const mapRideEntityToRide = (entity: RideEntity): Ride => {
@@ -129,15 +159,20 @@ const mapRideEntityToRide = (entity: RideEntity): Ride => {
     vehicle: entity.driverVehicle,
     origin: entity.origin.address,
     destination: entity.destination.address,
-    departureTime: entity.departureTime instanceof Date
-      ? entity.departureTime.toISOString()
-      : entity.departureTime.toDate().toISOString(),
+    originLat: entity.origin.lat,
+    originLng: entity.origin.lng,
+    destinationLat: entity.destination.lat,
+    destinationLng: entity.destination.lng,
+    departureTime: toIsoString(entity.departureTime) ?? new Date().toISOString(),
     seatsAvailable: entity.seatsAvailable,
     seatsBooked: entity.seatsBooked,
     status,
     notes: entity.note,
     eventId: entity.eventId,
     passengers: entity.passengers ?? [],
+    driverLat: entity.driverLocation?.lat,
+    driverLng: entity.driverLocation?.lng,
+    driverLocationUpdatedAt: toIsoString(entity.driverLocation?.updatedAt),
   };
 };
 
@@ -148,7 +183,7 @@ const mapEventEntityToEvent = (entity: EventEntity) => ({
   startTime:
     entity.startTime instanceof Date
       ? entity.startTime.toISOString()
-      : entity.startTime.toDate().toISOString(),
+      : (entity.startTime as any)?.toDate ? (entity.startTime as any).toDate().toISOString() : new Date().toISOString(),
   location: entity.location.address,
   category: entity.category,
   icon: entity.icon,
@@ -169,7 +204,7 @@ const mapRideRequestEntity = (entity: RideRequestEntity): RideRequest => ({
   createdAt:
     entity.createdAt instanceof Date
       ? entity.createdAt.toISOString()
-      : entity.createdAt.toDate().toISOString(),
+      : (entity.createdAt as any)?.toDate ? (entity.createdAt as any).toDate().toISOString() : new Date().toISOString(),
   message: entity.message,
 });
 
@@ -211,9 +246,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>(
     {},
   );
-  const [currentUser, setCurrentUser] = useState<Member | undefined>(
-    sampleMembers[0],
-  );
+  const [currentUser, setCurrentUser] = useState<Member | undefined>(undefined);
   const [authUid, setAuthUid] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -222,7 +255,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setRides(sampleRides);
       setEvents(sampleEvents);
       setNotifications(sampleNotifications);
-      setCurrentUser(sampleMembers[0]);
+      setCurrentUser(undefined);
       return;
     }
 
@@ -271,8 +304,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       (snap) => {
         const data = snap.docs
           .map((docSnap) => ({
-            id: docSnap.id,
             ...(docSnap.data() as RideRequestEntity),
+            id: docSnap.id,
           }))
           .map(mapRideRequestEntity);
         setRideRequests(data);
@@ -316,33 +349,40 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     let unsubscribe: (() => void) | undefined;
     let mounted = true;
-    listenForegroundMessages((payload) => {
-      const messageId = payload?.messageId ?? `fcm-${Date.now()}`;
-      const body =
-        payload?.notification?.body ??
-        payload?.data?.message ??
-        'Notification reçue';
-      const actionLabel =
-        payload?.notification?.title ?? payload?.data?.actionLabel;
-      setNotifications((prev) => [
-        {
-          id: `fcm-${messageId}`,
-          message: body,
-          type: 'info',
-          timestamp: new Date().toISOString(),
-          actionLabel,
-        },
-        ...prev,
-      ]);
-    })
-      .then((stop) => {
-        if (mounted) {
-          unsubscribe = stop;
-        }
-      })
-      .catch((error) => {
-        console.warn('[messaging] foreground listener failed', error);
+    try {
+      const result = listenForegroundMessages((payload: any) => {
+        const messageId = payload?.messageId ?? `fcm-${Date.now()}`;
+        const body =
+          payload?.notification?.body ??
+          payload?.data?.message ??
+          'Notification reÃ§ue';
+        const actionLabel =
+          payload?.notification?.title ?? payload?.data?.actionLabel;
+        setNotifications((prev) => [
+          {
+            id: `fcm-${messageId}`,
+            message: body,
+            type: 'info',
+            timestamp: new Date().toISOString(),
+            actionLabel,
+          },
+          ...prev,
+        ]);
       });
+      if (result && typeof result === 'object' && 'then' in result) {
+        (result as Promise<any>)
+          .then((stop: any) => {
+            if (mounted) {
+              unsubscribe = stop;
+            }
+          })
+          .catch((error: any) => {
+            console.warn('[messaging] foreground listener failed', error);
+          });
+      }
+    } catch (error) {
+      console.warn('[messaging] setup failed', error);
+    }
     return () => {
       mounted = false;
       if (unsubscribe) {
@@ -371,21 +411,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
   }, [members, rides]);
 
-  const verifyMembership = (code?: string, qrToken?: string) => {
-    const codeValid = code
-      ? verificationCodes.some((item) => item.code === code.trim())
-      : false;
-    const qrValid = qrToken
-      ? acceptedQrTokens.includes(qrToken.trim())
-      : false;
-    return codeValid || qrValid;
-  };
-
   const registerMember = async (payload: RegisterPayload) => {
-    if (!verifyMembership(payload.code, payload.qrToken)) {
-      return undefined;
-    }
-
     if (firebaseEnabled && payload.email && payload.password) {
       const language = payload.language ?? 'fr';
       const profile = await registerWithEmail({
@@ -405,6 +431,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         photoUrl: payload.avatar,
         phone: payload.phone,
       });
+      setMembers((prev) => {
+        const exists = prev.some((member) => member.id === mapped.id);
+        if (exists) {
+          return prev.map((member) =>
+            member.id === mapped.id ? { ...member, ...mapped } : member,
+          );
+        }
+        return [mapped, ...prev];
+      });
       setCurrentUser(mapped);
       return mapped;
     }
@@ -418,10 +453,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       role: 'passenger',
       verified: true,
       language: payload.language ?? 'fr',
-      badges: ['Voyageur de lumiere'],
+      badges: [],
       ridesGiven: 0,
       ridesTaken: 0,
       emergencyContact: undefined,
+      password: payload.password,
     };
     setMembers((prev) => [newMember, ...prev]);
     setCurrentUser(newMember);
@@ -435,7 +471,50 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         password,
       });
       const uid = credential.user.uid;
-      const member = members.find((item) => item.id === uid);
+      let member = members.find((item) => item.id === uid);
+      if (!member) {
+        const profile = await fetchUserProfile(uid);
+        if (profile) {
+          const mapped = mapProfileToMember(profile);
+          member = mapped;
+          setMembers((prev) => {
+            const exists = prev.some((item) => item.id === mapped.id);
+            if (exists) {
+              return prev.map((item) =>
+                item.id === mapped.id ? { ...item, ...mapped } : item,
+              );
+            }
+            return [mapped, ...prev];
+          });
+        } else {
+          const fallback: Member = {
+            id: uid,
+            name:
+              credential.user.displayName ??
+              credential.user.email ??
+              'Lyft-ICC member',
+            email: credential.user.email ?? undefined,
+            phone: credential.user.phoneNumber ?? undefined,
+            avatar: credential.user.photoURL ?? undefined,
+            role: 'passenger',
+            verified: true,
+            language: 'fr',
+            badges: [],
+            ridesGiven: 0,
+            ridesTaken: 0,
+            emergencyContact: undefined,
+            password: undefined,
+          };
+          member = fallback;
+          setMembers((prev) => {
+            const exists = prev.some((item) => item.id === fallback.id);
+            if (exists) {
+              return prev;
+            }
+            return [fallback, ...prev];
+          });
+        }
+      }
       setCurrentUser(member);
       return member;
     }
@@ -447,9 +526,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const nameMatch = m.name.toLowerCase() === normalized;
       return emailMatch || phoneMatch || nameMatch;
     });
-    if (member) {
-      setCurrentUser(member);
+    if (!member) {
+      return undefined;
     }
+
+    if (!firebaseEnabled) {
+      if (member.password) {
+        if (!password || member.password !== password) {
+          return undefined;
+        }
+      } else if (password) {
+        return undefined;
+      }
+    }
+
+    setCurrentUser(member);
     return member;
   };
 
@@ -479,48 +570,158 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const createRide = async (
-    ride: Omit<
-      Ride,
-      'id' | 'driverName' | 'driverAvatar' | 'seatsBooked' | 'passengers'
-    >,
-  ) => {
-    if (!currentUser) return;
+  const createRide = async (input: CreateRideInput) => {
+    if (!currentUser) {
+      return;
+    }
+    if (!currentUser.vehicle) {
+      throw new Error('Complétez votre véhicule dans votre profil conducteur.');
+    }
+    const departureDate = new Date(input.departureTime);
+    if (Number.isNaN(departureDate.getTime())) {
+      throw new Error('Date de depart invalide.');
+    }
+    const seatCount = Math.max(1, Math.min(8, Number(input.seatsAvailable) || 1));
+
     if (firebaseEnabled) {
-      const rideId = `ride-${Math.random().toString(36).slice(2, 10)}`;
+      const rideRef = doc(collection(firebaseServices.db, 'rides'));
       const entity: RideEntity = {
-        id: rideId,
+        id: rideRef.id,
         driverId: currentUser.id,
         driverName: currentUser.name,
         driverPhotoUrl: currentUser.avatar,
-        driverVehicle: ride.vehicle,
-        origin: { address: ride.origin, lat: 0, lng: 0 },
-        destination: { address: ride.destination, lat: 0, lng: 0 },
-        departureTime: Timestamp.fromDate(new Date(ride.departureTime)),
-        seatsAvailable: ride.seatsAvailable,
+        driverVehicle: currentUser.vehicle!,
+        origin: {
+          address: input.origin.address,
+          lat: input.origin.lat,
+          lng: input.origin.lng,
+        },
+        destination: {
+          address: input.destination.address,
+          lat: input.destination.lat,
+          lng: input.destination.lng,
+        },
+        departureTime: Timestamp.fromDate(departureDate),
+        seatsAvailable: seatCount,
         seatsBooked: 0,
         status: 'published',
         visibility: 'public',
-        note: ride.notes,
-        eventId: ride.eventId,
+        note: input.notes,
+        eventId: input.eventId,
         passengers: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        driverLocation: currentUser.locationLat && currentUser.locationLng
+          ? {
+              lat: currentUser.locationLat,
+              lng: currentUser.locationLng,
+              updatedAt: Timestamp.fromDate(
+                currentUser.locationUpdatedAt ? new Date(currentUser.locationUpdatedAt) : new Date(),
+              ),
+            }
+          : undefined,
       };
-      await setDoc(doc(firebaseServices.db, 'rides', rideId), entity);
+      await setDoc(rideRef, entity);
       return;
     }
+
     const newRide: Ride = {
-      ...ride,
       id: `ride-${Math.random().toString(36).slice(2, 10)}`,
       driverId: currentUser.id,
       driverName: currentUser.name,
       driverAvatar: currentUser.avatar,
+      vehicle: currentUser.vehicle!,
+      origin: input.origin.address,
+      originLat: input.origin.lat,
+      originLng: input.origin.lng,
+      destination: input.destination.address,
+      destinationLat: input.destination.lat,
+      destinationLng: input.destination.lng,
+      departureTime: departureDate.toISOString(),
+      seatsAvailable: seatCount,
       seatsBooked: 0,
-      passengers: [],
       status: 'pending',
+      notes: input.notes,
+      eventId: input.eventId,
+      passengers: [],
+      driverLat: currentUser.locationLat,
+      driverLng: currentUser.locationLng,
+      driverLocationUpdatedAt: currentUser.locationUpdatedAt,
     };
     setRides((prev) => [newRide, ...prev]);
+  };
+
+  const updateDriverLocation = async ({ lat, lng, updatedAt = new Date() }: DriverLocationInput) => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (firebaseEnabled) {
+      const timestamp = Timestamp.fromDate(updatedAt);
+      await updateDoc(doc(firebaseServices.db, 'profiles', currentUser.id), {
+        currentLocation: {
+          lat,
+          lng,
+          updatedAt: timestamp,
+        },
+        updatedAt: serverTimestamp(),
+      });
+
+      const activeQuery = query(
+        collection(firebaseServices.db, 'rides'),
+        where('driverId', '==', currentUser.id),
+        where('status', 'in', ['published', 'in_progress']),
+      );
+      const snapshot = await getDocs(activeQuery);
+      await Promise.all(
+        snapshot.docs.map((rideDoc) =>
+          updateDoc(rideDoc.ref, {
+            driverLocation: {
+              lat,
+              lng,
+              updatedAt: timestamp,
+            },
+            updatedAt: serverTimestamp(),
+          }),
+        ),
+      );
+      return;
+    }
+
+    setMembers((prev) =>
+      prev.map((member) =>
+        member.id === currentUser.id
+          ? {
+              ...member,
+              locationLat: lat,
+              locationLng: lng,
+              locationUpdatedAt: updatedAt.toISOString(),
+            }
+          : member,
+      ),
+    );
+    setRides((prev) =>
+      prev.map((ride) =>
+        ride.driverId === currentUser.id
+          ? {
+              ...ride,
+              driverLat: lat,
+              driverLng: lng,
+              driverLocationUpdatedAt: updatedAt.toISOString(),
+            }
+          : ride,
+      ),
+    );
+    setCurrentUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            locationLat: lat,
+            locationLng: lng,
+            locationUpdatedAt: updatedAt.toISOString(),
+          }
+        : prev,
+    );
   };
 
   const requestRide = async (rideId: string, message?: string) => {
@@ -650,7 +851,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       chatMessages,
       currentUser,
       adminStats,
-      verifyMembership,
       registerMember,
       login,
       logout,
@@ -663,6 +863,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addNotification,
       sendChatMessage,
       sendAnnouncement,
+      updateDriverLocation,
     }),
     [
       members,
@@ -673,6 +874,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       chatMessages,
       currentUser,
       adminStats,
+      registerMember,
+      login,
+      logout,
+      upgradeToDriver,
+      createRide,
+      requestRide,
+      respondToRideRequest,
+      startRide,
+      finishRide,
+      addNotification,
+      sendChatMessage,
+      sendAnnouncement,
+      updateDriverLocation,
     ],
   );
 
@@ -690,5 +904,9 @@ export function useAppState() {
   }
   return context;
 }
+
+
+
+
 
 

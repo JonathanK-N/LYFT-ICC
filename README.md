@@ -110,10 +110,25 @@ public/
 1. **SÃ©curitÃ© Firebase** : finaliser les rÃ¨gles Firestore/Storage et lâ€™indexation (comprise dans la phase 3).
 2. **Phase 4** : dons Stripe, onboarding vocal, tests unitaires/E2E, QA PWA (Audit Lighthouse), packaging.
 
-Que Dieu benisse chaque trajet partage !
+
 
 ## QA & packaging
 
 - `npm run build && npm run preview` puis audit Lighthouse (PWA + Performance >= 90 recommande).
 - `npm run lint` pour verifier la qualite du code (actuellement quelques avertissements subsistent sur les providers React Ã  dÃ©couper en modules dÃ©diÃ©s).
 - Le build genere un service worker (voir `dist/`).
+
+## Mise en place Firebase & Mapbox
+
+1. Crée un projet Firebase, active Authentication (Email/Password), Firestore, et (optionnel) Functions/Storage.
+2. Dans Firestore, prévois les collections `profiles`, `rides`, `rideRequests`, `notifications`, `events`.
+   - `profiles`: champs `fullName`, `email`, `role`, `vehicle`, `currentLocation` (lat/lng + updatedAt).
+   - `rides`: champs `driverId`, `origin` (address/lat/lng), `destination`, `departureTime`, `seatsAvailable`, `driverLocation`, `status`.
+3. Saisis les règles de sécurité pour limiter la lecture/écriture aux utilisateurs authentifiés.
+4. Copie les variables Firebase dans `.env` (ou dans Railway) : `VITE_FIREBASE_*`, `VITE_FIREBASE_VAPID_KEY` si tu utilises FCM.
+5. Crée un compte Mapbox, récupère un token et renseigne `VITE_MAPBOX_TOKEN`. Limite le token aux domaines de ton hébergement.
+6. Sur Railway (ou ton infra), définis `RAILWAY_BUILD_NODE_VERSION=22.12.0` (Vite demande Node >= 20.19).
+
+Une fois ces étapes en place, l'application écoutera les documents Firestore en temps réel et mettra à jour la carte Mapbox avec les positions des conducteurs.
+
+Pour un guide détaillé (règles Firestore, géocodage, partages de position), consulte `docs/integration.md`.

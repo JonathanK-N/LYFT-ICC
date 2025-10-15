@@ -1,297 +1,191 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-  FiCalendar,
-  FiClock,
-  FiFilter,
-  FiMapPin,
-  FiNavigation,
-  FiSearch,
-  FiUsers,
-} from 'react-icons/fi';
-import { useLocation } from 'react-router-dom';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { createMapboxMap } from '../lib/map/mapbox';
+import OfferRideForm from '../components/OfferRideForm';
+import type { RideFilterValue } from '../components/RideFilters';
+import RideFilters from '../components/RideFilters';
+import { useDriverLocation } from '../hooks/useDriverLocation';
 import { useAppState } from '../contexts/AppStateContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useUIStore } from '../modules/app/ui.store';
 import '../pages/styles/MapPage.css';
 
-const sheetVariants = {
-  hidden: { translateY: 320 },
-  visible: {
-    translateY: 0,
-    transition: { type: 'spring', stiffness: 160, damping: 22 },
-  },
-  exit: { translateY: 360, transition: { duration: 0.2, ease: 'easeIn' } },
-};
+const MAP_CENTER: [number, number] = [2.3522, 48.8566];
 
 export default function MapPage() {
-  const { rides, events, rideRequests, currentUser } = useAppState();
-  const { translate } = useLanguage();
-  const locationState = useLocation().state as
-    | { rideId?: string; mode?: 'driver' | 'passenger' }
-    | undefined;
-
+  const { rides, currentUser } = useAppState();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'driver' | 'passenger'>(
-    locationState?.mode ?? 'passenger',
-  );
-  const [query, setQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [selectedRideId, setSelectedRideId] = useState<string | undefined>(
-    locationState?.rideId,
-  );
+  const [mode, setMode] = useState<'all' | 'driver'>('all');
+  const [filters, setFilters] = useState<RideFilterValue>({ query: '', date: '' });
+  const [shareLocation, setShareLocation] = useState(false);
 
-  const { setRideSheet } = useUIStore((state) => ({
-    setRideSheet: state.setRideSheet,
-  }));
+  useDriverLocation({ enabled: shareLocation, interval: 15000 });
 
   useEffect(() => {
-    if (!mapContainerRef.current) {
+    const token = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
+    if (!token) {
+      setMapError('Ajoutez VITE_MAPBOX_TOKEN pour activer la carte interactive.');
+      return;
+    }
+    mapboxgl.accessToken = token;
+    if (!mapContainerRef.current || mapRef.current) {
       return;
     }
     try {
-      const instance = createMapboxMap(mapContainerRef.current, {
-        zoom: 12.5,
-        center: [2.3452, 48.8534],
-        pitch: 55,
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: MAP_CENTER,
+        zoom: 11.5,
       });
-      setMapReady(true);
-      return () => instance.cleanup();
+      mapRef.current = map;
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      setMapError(null);
     } catch (error) {
-      console.warn('[map] fallback placeholder', error);
-      setMapError('Carte indisponible pour le moment.');
+      console.warn('[map] init failed', error);
+      setMapError('Impossible de charger la carte. VÃ©rifiez le token Mapbox.');
     }
+
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, []);
-
-useEffect(() => {
-  if (selectedRideId) {
-    setRideSheet(true, selectedRideId);
-  } else {
-    setRideSheet(false);
-  }
-}, [selectedRideId, setRideSheet]);
-
-useEffect(() => () => setRideSheet(false), [setRideSheet]);
 
   const filteredRides = useMemo(() => {
     return rides.filter((ride) => {
-      const matchesQuery = query
-        ? `${ride.origin} ${ride.destination}`
-            .toLowerCase()
-            .includes(query.toLowerCase())
-        : true;
-      const matchesDate = dateFilter
-        ? ride.departureTime.slice(0, 10) === dateFilter
-        : true;
-      if (mode === 'driver' && currentUser) {
-        return matchesQuery && matchesDate && ride.driverId === currentUser.id;
+      if (mode === 'driver' && ride.driverId !== currentUser?.id) {
+        return false;
       }
-      return matchesQuery && matchesDate;
+      if (filters.query) {
+        const needle = filters.query.toLowerCase();
+        const haystack = `${ride.origin} ${ride.destination} ${ride.driverName}`.toLowerCase();
+        if (!haystack.includes(needle)) {
+          return false;
+        }
+      }
+      if (filters.date) {
+        const rideDate = ride.departureTime.slice(0, 10);
+        if (rideDate !== filters.date) {
+          return false;
+        }
+      }
+      return true;
     });
-  }, [rides, query, dateFilter, mode, currentUser]);
+  }, [rides, mode, filters, currentUser?.id]);
 
-  const selectedRide = selectedRideId
-    ? rides.find((ride) => ride.id === selectedRideId)
-    : undefined;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
 
-  const eventSuggestions = events.slice(0, 4);
-  const pendingForDriver =
-    currentUser && mode === 'driver'
-      ? rideRequests.filter(
-          (request) =>
-            request.status === 'pending' &&
-            rides.some(
-              (ride) =>
-                ride.id === request.rideId && ride.driverId === currentUser.id,
-            ),
-        )
-      : [];
+    filteredRides.slice(0, 25).forEach((ride) => {
+      const lat = ride.driverLat ?? ride.originLat;
+      const lng = ride.driverLng ?? ride.originLng;
+      if (typeof lat !== 'number' || typeof lng !== 'number') {
+        return;
+      }
+      const el = document.createElement('button');
+      el.className = 'map-marker';
+      el.textContent = `${Math.max(ride.seatsAvailable - ride.seatsBooked, 0)}`;
+      const marker = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
+      markersRef.current.push(marker);
+    });
+  }, [filteredRides]);
+
+  const isDriver = currentUser?.role === 'driver';
 
   return (
-    <section className="map-screen">
-      <div className="map-overlay">
-        <header className="map-toolbar">
-          <div className="map-toolbar__title">
-            <span className="eyebrow">Lyft-ICC</span>
-            <h1>Carte communautaire</h1>
-          </div>
-          <div className="mode-toggle">
-            <button
-              type="button"
-              className={mode === 'passenger' ? 'active' : ''}
-              onClick={() => setMode('passenger')}
-            >
-              Passager
-            </button>
+    <section className="map-page">
+      <div className="map-page__header">
+        <h1>Carte des trajets</h1>
+        <p>Filtrez les trajets disponibles et suivez lÂ’activitÃ© des conducteurs en direct.</p>
+        <div className="map-controls">
+          <button
+            type="button"
+            className={mode === 'all' ? 'active' : ''}
+            onClick={() => setMode('all')}
+          >
+            Tous les trajets
+          </button>
+          {isDriver ? (
             <button
               type="button"
               className={mode === 'driver' ? 'active' : ''}
               onClick={() => setMode('driver')}
             >
-              Conducteur
-              {pendingForDriver.length > 0 ? (
-                <span className="badge">{pendingForDriver.length}</span>
-              ) : null}
+              Mes trajets conducteurs
             </button>
-          </div>
-        </header>
-
-        <div className="map-search">
-          <div className="input-group">
-            <FiSearch />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={translate('destination') ?? 'Destination'}
-            />
-          </div>
-          <div className="input-group">
-            <FiCalendar />
-            <input
-              value={dateFilter}
-              onChange={(event) => setDateFilter(event.target.value)}
-              type="date"
-            />
-          </div>
-          <button type="button" className="filter-btn">
-            <FiFilter />
-          </button>
-        </div>
-
-        <div className="map-badges">
-          {eventSuggestions.map((event) => (
-            <span key={event.id} className="map-badge">
-              {event.icon} {event.title}
-            </span>
-          ))}
+          ) : null}
+          {isDriver ? (
+            <button
+              type="button"
+              className={`share-location ${shareLocation ? 'active' : ''}`}
+              onClick={() => setShareLocation((prev) => !prev)}
+            >
+              {shareLocation ? 'ArrÃªter le partage' : 'Partager ma position'}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <div className="map-canvas" ref={mapContainerRef}>
-        {!mapReady && !mapError && (
-          <div className="map-placeholder">Chargement de la carte...</div>
-        )}
-        {mapError ? <div className="map-error">{mapError}</div> : null}
+      <div className="map-layout">
+        <div className="map-column">
+          <div className="map-panel">
+            {mapError ? (
+              <div className="map-placeholder">{mapError}</div>
+            ) : (
+              <div ref={mapContainerRef} className="map-canvas" aria-label="Carte des trajets" />
+            )}
+          </div>
+
+          <RideFilters value={filters} onChange={setFilters} />
+
+          <div className="ride-list">
+            {filteredRides.length === 0 ? (
+              <div className="ride-empty">
+                Aucun trajet ne correspond Ã  vos critÃ¨res pour le moment.
+              </div>
+            ) : (
+              filteredRides.map((ride) => (
+                <article key={ride.id} className="ride-card">
+                  <div className="ride-route">
+                    <div>
+                      <strong>{ride.origin}</strong>
+                      <span>
+                        DÃ©part {new Date(ride.departureTime).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>{ride.destination}</strong>
+                      <span>{ride.seatsAvailable - ride.seatsBooked} place(s) disponible(s)</span>
+                    </div>
+                  </div>
+                  <div className="ride-meta">
+                    <div className="ride-meta__info">
+                      <span>{ride.driverName}</span>
+                      <span>
+                        {ride.vehicle.make} {ride.vehicle.model} Â· {ride.vehicle.color}
+                      </span>
+                    </div>
+                    <button type="button">Contacter</button>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="form-column">
+          <OfferRideForm />
+        </div>
       </div>
-
-      <AnimatePresence>
-        <motion.div
-          className="map-sheet"
-          variants={sheetVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
-          <div className="map-sheet__handle" />
-          <div className="map-sheet__header">
-            <div>
-              <p className="title">
-                {mode === 'driver' ? 'Vos trajets' : 'Rides disponibles'}
-              </p>
-              <p className="subtitle">
-                {mode === 'driver'
-                  ? 'Visualisez et suivez les passagers en attentes.'
-                  : 'Choisissez un conducteur pour votre prochain trajet.'}
-              </p>
-            </div>
-            <span className="count">{filteredRides.length}</span>
-          </div>
-
-          <div className="map-sheet__list">
-            {filteredRides.map((ride) => (
-              <button
-                type="button"
-                key={ride.id}
-                className={`map-ride ${
-                  selectedRideId === ride.id ? 'active' : ''
-                }`}
-                onClick={() => setSelectedRideId(ride.id)}
-              >
-                <div className="map-ride__main">
-                  <div className="map-ride__route">
-                    <span>
-                      <FiNavigation /> {ride.origin}
-                    </span>
-                    <span className="arrow">-&gt;</span>
-                    <span>{ride.destination}</span>
-                  </div>
-                  <div className="map-ride__meta">
-                    <span>
-                      <FiClock />{' '}
-                      {new Date(ride.departureTime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                    <span className="status">
-                      {ride.seatsAvailable - ride.seatsBooked}/
-                      {ride.seatsAvailable}
-                    </span>
-                  </div>
-                </div>
-                <div className="map-ride__driver">
-                  <span className="avatar">
-                    {ride.driverAvatar ? (
-                      <img src={ride.driverAvatar} alt={ride.driverName} />
-                    ) : (
-                      <FiUsers />
-                    )}
-                  </span>
-                  <div>
-                    <strong>{ride.driverName}</strong>
-                    <small>
-                      {ride.vehicle.make} {ride.vehicle.model}
-                    </small>
-                  </div>
-                </div>
-              </button>
-            ))}
-            {filteredRides.length === 0 && (
-              <div className="empty-state">Aucun trajet pour le moment.</div>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {selectedRide && (
-              <motion.div
-                key={selectedRide.id}
-                className="map-sheet__detail"
-                initial={{ opacity: 0, translateY: 20 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                exit={{ opacity: 0, translateY: 20 }}
-              >
-                <div className="detail-header">
-                  <strong>{selectedRide.driverName}</strong>
-                  <span className={`badge status-${selectedRide.status}`}>
-                    {selectedRide.status}
-                  </span>
-                </div>
-                <p>
-                  <FiMapPin /> {selectedRide.origin} -&gt; {selectedRide.destination}
-                </p>
-                <p>
-                  <FiClock />{' '}
-                  {new Date(selectedRide.departureTime).toLocaleString()}
-                </p>
-                {selectedRide.note ? (
-                  <p className="note">“{selectedRide.note}”</p>
-                ) : null}
-                <div className="detail-actions">
-                  <button type="button" className="secondary">
-                    {mode === 'driver'
-                      ? 'Ouvrir la mission'
-                      : translate('reserve')}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </AnimatePresence>
     </section>
   );
 }

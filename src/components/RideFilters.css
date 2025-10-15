@@ -1,0 +1,24 @@
+.ride-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ride-filters input {
+  flex: 1;
+  min-width: 180px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 0.65rem 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .ride-filters {
+    flex-direction: column;
+  }
+}

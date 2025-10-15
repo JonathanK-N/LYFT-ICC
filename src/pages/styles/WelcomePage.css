@@ -1,113 +1,65 @@
 .welcome-screen {
-  padding-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 32px;
 }
 
 .welcome-hero {
-  text-align: left;
-  position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  object-fit: contain;
+  padding: 6px;
 }
 
 .welcome-hero h1 {
-  font-size: calc(1.75rem * var(--font-scale));
-  margin: 0.2rem 0 0.6rem;
-  font-weight: 800;
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
 }
 
 .welcome-hero .intro {
-  color: var(--color-muted);
-  font-size: calc(1rem * var(--font-scale));
-  margin: 0;
+  color: #4b5563;
+  margin: 8px 0 0;
 }
 
-.hero-art {
-  position: relative;
-  min-height: 140px;
-  margin: 1.4rem 0;
-}
-
-.halo-circle {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(243, 201, 105, 0.28) 0%, rgba(243, 201, 105, 0) 70%);
-  border-radius: 50%;
-  filter: blur(1px);
-}
-
-.car-card {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem 1.2rem;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(102, 167, 255, 0.25);
-  font-size: calc(0.85rem * var(--font-scale));
-  color: var(--color-muted);
-  max-width: 200px;
-  box-shadow: 0 16px 36px rgba(102, 167, 255, 0.25);
-}
-
-.car-card span {
-  font-size: 2rem;
-}
-
-.welcome-actions {
+.hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-top: 1.5rem;
-}
-
-.welcome-highlights .highlight-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.highlight-card {
-  background: rgba(255, 255, 255, 0.76);
-  border-radius: var(--radius-lg);
-  padding: 1rem;
-  border: 1px solid rgba(102, 167, 255, 0.2);
-  display: grid;
-  gap: 0.55rem;
-}
-
-.highlight-card .icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: rgba(102, 167, 255, 0.18);
-  display: grid;
-  place-items: center;
-  font-size: 1.2rem;
-  color: var(--color-sky-strong);
+  gap: 12px;
 }
 
 .welcome-footer {
-  font-size: calc(0.9rem * var(--font-scale));
-  color: var(--color-muted);
+  font-size: 0.95rem;
+  color: #4b5563;
   display: grid;
   gap: 0.35rem;
 }
 
-body.theme-dark .car-card,
-body.theme-dark .highlight-card {
-  background: rgba(12, 23, 45, 0.88);
-  border-color: rgba(102, 167, 255, 0.4);
-  color: var(--color-muted-dark);
-  box-shadow: 0 16px 36px rgba(5, 14, 28, 0.55);
-}
+@media (max-width: 640px) {
+  .brand-block {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-@media (min-width: 620px) {
-  .welcome-highlights .highlight-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .brand-logo {
+    width: 60px;
+    height: 60px;
   }
 }
-

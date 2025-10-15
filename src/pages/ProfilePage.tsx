@@ -378,7 +378,7 @@ export default function ProfilePage() {
           type="button"
           onClick={async () => {
             await logout();
-            navigate('/auth');
+            navigate('/login');
           }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.97 }}
