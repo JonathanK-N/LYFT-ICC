@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAppState } from '../contexts/AppStateContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { branding } from '../assets/branding';
@@ -8,6 +9,7 @@ import './AppHeader.css';
 interface NavItem {
   label: string;
   path: string;
+  anchor?: string;
   adminOnly?: boolean;
 }
 
@@ -15,15 +17,14 @@ export default function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser } = useAppState();
-  const { translate, toggleLanguage, language } = useLanguage();
+  const { translate } = useLanguage();
 
   const logoSrc = branding.iccLogo || '/icons/icon-192.png';
 
   const navItems = useMemo<NavItem[]>(() => {
     const base: NavItem[] = [
-      { label: translate('dashboard'), path: '/home' },
-      { label: translate('map'), path: '/map' },
-      { label: translate('events'), path: '/events' },
+      { label: translate('home'), path: '/home' },
+      { label: translate('events'), path: '/home', anchor: 'events-section' },
       { label: translate('profile'), path: '/profile' },
     ];
     if (currentUser?.role === 'admin') {
@@ -31,6 +32,18 @@ export default function AppHeader() {
     }
     return base;
   }, [currentUser?.role, translate]);
+
+  const handleNav = (item: NavItem) => {
+    if (item.anchor && location.pathname === item.path) {
+      const target = document.getElementById(item.anchor);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    navigate(item.path, item.anchor ? { state: { scrollTo: item.anchor } } : undefined);
+  };
 
   return (
     <header className="app-header">
@@ -42,20 +55,19 @@ export default function AppHeader() {
         {navItems.map((item) => {
           const active = location.pathname === item.path;
           return (
-            <button
+            <motion.button
               key={item.path}
               type="button"
               className={`nav-link${active ? ' active' : ''}`}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNav(item)}
               aria-current={active ? 'page' : undefined}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {item.label}
-            </button>
+            </motion.button>
           );
         })}
-        <button type="button" className="nav-link language" onClick={toggleLanguage}>
-          {language === 'fr' ? 'FR' : 'EN'}
-        </button>
       </nav>
     </header>
   );

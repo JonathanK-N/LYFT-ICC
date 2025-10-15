@@ -47,16 +47,16 @@ export default function OfferRideForm({ selectedEvent }: OfferRideFormProps) {
     setSuccess(null);
 
     if (!isDriver) {
-      setError('You need a driver profile to offer a ride.');
+      setError('Vous devez etre conducteur pour proposer un trajet.');
       return;
     }
     if (!form.origin || (!form.destination && !selectedEvent) || !form.departure) {
-      setError('Veuillez remplir l\'origine, la destination et l\'heure de départ.');
+      setError('Veuillez renseigner l origine, la destination et l heure de depart.');
       return;
     }
 
     if (!mapboxToken) {
-      setError('Set VITE_MAPBOX_TOKEN to publish a ride.');
+      setError('Configurez VITE_MAPBOX_TOKEN pour publier un trajet.');
       return;
     }
 
@@ -64,14 +64,14 @@ export default function OfferRideForm({ selectedEvent }: OfferRideFormProps) {
     try {
       const origin = await geocodeAddress(form.origin, mapboxToken);
       let destination;
-      
+
       if (selectedEvent) {
-        const event = events.find(e => e.id === selectedEvent);
-        if (!event?.location) {
-          setError('L\'événement sélectionné n\'a pas d\'adresse définie.');
+        const eventItem = events.find((evt) => evt.id === selectedEvent);
+        if (!eventItem?.location) {
+          setError('Evenement selectionne sans adresse definie.');
           return;
         }
-        destination = await geocodeAddress(event.location, mapboxToken);
+        destination = await geocodeAddress(eventItem.location, mapboxToken);
       } else {
         destination = await geocodeAddress(form.destination, mapboxToken);
       }
@@ -85,10 +85,10 @@ export default function OfferRideForm({ selectedEvent }: OfferRideFormProps) {
         eventId: selectedEvent || undefined,
       });
 
-      setSuccess('Ride published successfully.');
+      setSuccess('Trajet publie avec succes.');
       setForm(initialState);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create ride.');
+      setError('Impossible de creer le trajet.');
     } finally {
       setLoading(false);
     }
@@ -97,59 +97,56 @@ export default function OfferRideForm({ selectedEvent }: OfferRideFormProps) {
   if (!mapboxToken) {
     return (
       <section className="offer-ride">
-        <h2>Offer a ride</h2>
-        <p className="offer-ride__info">Add VITE_MAPBOX_TOKEN in your environment variables to enable geocoding.</p>
+        <h2>Proposer un trajet</h2>
+        <p className="offer-ride__info">
+          Ajoutez VITE_MAPBOX_TOKEN dans vos variables d environnement pour activer la geolocalisation.
+        </p>
       </section>
     );
   }
 
   return (
     <section className="offer-ride">
-      <h2>Offer a ride</h2>
+      <h2>Proposer un trajet</h2>
       {!isDriver ? (
         <p className="offer-ride__info">
-          Your profile is currently passenger. Complete your vehicle in the profile tab to become a driver.
+          Votre profil est actuellement passager. Completez votre vehicule dans l onglet profil pour devenir conducteur.
         </p>
       ) : (
         <>
           <p className="offer-ride__info">
-            Proposez un trajet pour un événement ICC. Les passagers verront votre offre immédiatement.
+            Proposez un trajet pour un evenement ICC. Les passagers verront votre offre immediatement.
           </p>
           {selectedEvent && (
             <div className="selected-event">
-              <strong>Événement sélectionné:</strong>
-              {events.find(e => e.id === selectedEvent)?.title}
+              <strong>Evenement selectionne :</strong>
+              {events.find((evt) => evt.id === selectedEvent)?.title}
             </div>
           )}
           <form className="offer-ride__form" onSubmit={handleSubmit}>
-            <label htmlFor="origin">Origin</label>
+            <label htmlFor="origin">Point de depart</label>
             <input
               id="origin"
               value={form.origin}
               onChange={handleChange('origin')}
-              placeholder="e.g. 57 rue du Commerce, Paris"
+              placeholder="Adresse de depart"
               required
             />
 
-            <label htmlFor="destination">Destination</label>
-            {selectedEvent ? (
-              <input
-                id="destination"
-                value={events.find(e => e.id === selectedEvent)?.location || ''}
-                disabled
-                style={{ background: '#f3f4f6', color: '#6b7280' }}
-              />
-            ) : (
-              <input
-                id="destination"
-                value={form.destination}
-                onChange={handleChange('destination')}
-                placeholder="e.g. Impact Centre Chretien, Evry"
-                required
-              />
-            )}
+            {!selectedEvent ? (
+              <>
+                <label htmlFor="destination">Destination</label>
+                <input
+                  id="destination"
+                  value={form.destination}
+                  onChange={handleChange('destination')}
+                  placeholder="Adresse d arrivee"
+                  required
+                />
+              </>
+            ) : null}
 
-            <label htmlFor="departure">Departure (date & time)</label>
+            <label htmlFor="departure">Heure de depart</label>
             <input
               id="departure"
               type="datetime-local"
@@ -158,30 +155,35 @@ export default function OfferRideForm({ selectedEvent }: OfferRideFormProps) {
               required
             />
 
-            <label htmlFor="seats">Seats available</label>
-            <input
+            <label htmlFor="seats">Places disponibles</label>
+            <select
               id="seats"
-              type="number"
-              min={1}
-              max={8}
               value={form.seats}
-              onChange={handleChange('seats')}
-            />
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, seats: Number(event.target.value) }))
+              }
+            >
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <option key={n} value={n}>
+                  {n} place{n > 1 ? 's' : ''}
+                </option>
+              ))}
+            </select>
 
-            <label htmlFor="notes">Message for passengers (optional)</label>
+            <label htmlFor="notes">Message pour les passagers (optionnel)</label>
             <textarea
               id="notes"
               value={form.notes}
               onChange={handleChange('notes')}
               rows={3}
-              placeholder="Extra info, meeting point..."
+              placeholder="Informations supplementaires..."
             />
 
             {error ? <p className="offer-ride__error">{error}</p> : null}
             {success ? <p className="offer-ride__success">{success}</p> : null}
 
             <button type="submit" disabled={loading}>
-              {loading ? 'Publishing...' : 'Publish ride'}
+              {loading ? 'Publication...' : 'Publier le trajet'}
             </button>
           </form>
         </>

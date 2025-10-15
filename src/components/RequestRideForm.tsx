@@ -31,12 +31,11 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
   };
 
-  const availableRides = rides.filter(ride => 
-    selectedEvent ? ride.eventId === selectedEvent : true
-  ).filter(ride => 
-    ride.driverId !== currentUser?.id && 
-    ride.seatsAvailable > ride.seatsBooked
-  );
+  const availableRides = rides
+    .filter((ride) => (selectedEvent ? ride.eventId === selectedEvent : true))
+    .filter(
+      (ride) => ride.driverId !== currentUser?.id && ride.seatsAvailable > ride.seatsBooked,
+    );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,22 +43,25 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
     setSuccess(null);
 
     if (!selectedRide) {
-      setError('Veuillez sélectionner un trajet.');
+      setError('Veuillez selectionner un trajet.');
       return;
     }
     if (!form.pickupAddress.trim()) {
-      setError('Veuillez entrer votre adresse de prise en charge.');
+      setError('Veuillez indiquer votre adresse de prise en charge.');
       return;
     }
 
     setLoading(true);
     try {
-      await requestRide(selectedRide, `Adresse de prise en charge: ${form.pickupAddress}. ${form.notes}`);
-      setSuccess('Demande envoyée au conducteur.');
+      await requestRide(
+        selectedRide,
+        `Adresse de prise en charge: ${form.pickupAddress}. ${form.notes}`,
+      );
+      setSuccess('Demande envoyee au conducteur.');
       setForm(initialState);
       setSelectedRide('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible d\'envoyer la demande.');
+      setError('Impossible d envoyer la demande.');
     } finally {
       setLoading(false);
     }
@@ -68,21 +70,21 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
   return (
     <section className="offer-ride">
       <h2>Demander un trajet</h2>
-      {selectedEvent && (
+      {selectedEvent ? (
         <div className="selected-event">
-          <strong>Événement sélectionné:</strong>
-          {events.find(e => e.id === selectedEvent)?.title}
+          <strong>Evenement selectionne :</strong>
+          {events.find((evt) => evt.id === selectedEvent)?.title}
         </div>
-      )}
-      
+      ) : null}
+
       {availableRides.length === 0 ? (
         <p className="offer-ride__info">
-          Aucun trajet disponible pour cet événement pour le moment.
+          Aucun trajet disponible pour cet evenement pour le moment.
         </p>
       ) : (
         <>
           <p className="offer-ride__info">
-            Sélectionnez un trajet et indiquez votre adresse de prise en charge.
+            Selectionnez un trajet et indiquez votre adresse de prise en charge.
           </p>
           <form className="offer-ride__form" onSubmit={handleSubmit}>
             <label htmlFor="ride-select">Trajet disponible</label>
@@ -95,8 +97,10 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
               <option value="">Choisir un trajet</option>
               {availableRides.map((ride) => (
                 <option key={ride.id} value={ride.id}>
-                  {ride.driverName} - {ride.origin} → {ride.destination} 
-                  ({new Date(ride.departureTime).toLocaleString()})
+                  {ride.driverName} - {ride.origin}
+                  {' -> '}
+                  {ride.destination} (
+                  {new Date(ride.departureTime).toLocaleString()})
                 </option>
               ))}
             </select>
@@ -106,7 +110,7 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
               id="pickupAddress"
               value={form.pickupAddress}
               onChange={handleChange('pickupAddress')}
-              placeholder="123 rue Example, Sherbrooke, QC"
+              placeholder="123 rue Exemple, Sherbrooke, QC"
               required
             />
 
@@ -116,7 +120,7 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
               value={form.notes}
               onChange={handleChange('notes')}
               rows={3}
-              placeholder="Informations supplémentaires..."
+              placeholder="Informations supplementaires..."
             />
 
             {error ? <p className="offer-ride__error">{error}</p> : null}

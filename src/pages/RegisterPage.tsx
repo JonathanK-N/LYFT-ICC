@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAppState } from '../contexts/AppStateContext';
-import type { Language } from '../types';
 import './styles/RegisterPage.css';
 
 export default function RegisterPage() {
@@ -12,7 +12,6 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +44,6 @@ export default function RegisterPage() {
         name: fullName.trim(),
         email: email.trim() ? email.trim() : undefined,
         phone: phone.trim() ? phone.trim() : undefined,
-
         password: password.trim() ? password.trim() : undefined,
       });
       if (!member) {
@@ -55,7 +53,7 @@ export default function RegisterPage() {
       navigate('/home', { replace: true });
     } catch (err) {
       console.error('[register] failed', err);
-      setError("Une erreur est survenue pendant l'inscription.");
+      setError('Une erreur est survenue pendant l inscription.');
     } finally {
       setLoading(false);
     }
@@ -63,14 +61,31 @@ export default function RegisterPage() {
 
   return (
     <div className="register-wrapper">
-      <div className="register-header">
-        <img src="/icons/icon-192.png" alt="Lyft-ICC" className="register-logo" />
-        <h1>Créer un compte</h1>
+      <motion.div
+        className="register-header"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
+        <motion.img
+          src="/branding/icc-logo.png"
+          alt="Lyft-ICC"
+          className="register-logo"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}
+        />
+        <h1>Creer un compte</h1>
         <p className="register-subtitle">
-          Rejoignez la communauté Lyft-ICC et accédez à votre portail.
+          Rejoignez la communaute Lyft-ICC et accedez a votre portail de mobilite.
         </p>
-      </div>
-      <section className="register-card">
+      </motion.div>
+      <motion.section
+        className="register-card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+      >
         <form className="register-form" onSubmit={handleSubmit}>
           <label htmlFor="fullName">Nom complet</label>
           <input
@@ -116,18 +131,31 @@ export default function RegisterPage() {
             placeholder="********"
           />
 
-          {error ? <p className="register-error">{error}</p> : null}
+          {error ? (
+            <motion.p
+              className="register-error"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {error}
+            </motion.p>
+          ) : null}
           <div className="register-actions">
-            <button type="submit" disabled={loading}>
-              {loading ? 'Création...' : "S'inscrire"}
-            </button>
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: loading ? 1 : 1.01 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
+            >
+              {loading ? 'Creation en cours...' : "S'inscrire"}
+            </motion.button>
           </div>
         </form>
         <div className="register-links">
-          <span>Déjà inscrit ?</span>
+          <span>Deja inscrit ?</span>
           <Link to="/login">Se connecter</Link>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

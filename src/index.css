@@ -1,16 +1,22 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  --color-page: #eef1f6;
+  --color-page: #f9f4ea;
   --color-surface: #ffffff;
-  --color-surface-muted: #f8fafc;
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-text: #1f2937;
-  --color-text-muted: #4b5563;
-  --radius-md: 14px;
-  --shadow-sm: 0 8px 16px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 20px 40px rgba(15, 23, 42, 0.12);
+  --color-surface-muted: #fff6e5;
+  --color-primary: #d4a574;
+  --color-primary-dark: #b8935f;
+  --color-primary-light: #f0dcc0;
+  --color-accent-navy: #1b2845;
+  --color-ink: #2c1a10;
+  --color-ink-soft: #5c4335;
+  --color-ink-inverse: #ffffff;
+  --color-text: var(--color-ink);
+  --color-text-muted: var(--color-ink-soft);
+  --radius-md: 16px;
+  --shadow-sm: 0 10px 18px rgba(27, 40, 69, 0.12);
+  --shadow-md: 0 30px 60px rgba(27, 40, 69, 0.18);
+  --transition-base: 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
 *,
@@ -24,12 +30,13 @@ body {
   margin: 0;
   min-height: 100%;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: var(--color-text);
-  background: var(--color-page);
+  color: var(--color-ink);
+  background: linear-gradient(180deg, #fefbf6 0%, #f4e7d3 100%);
 }
 
 body {
   min-height: 100vh;
+  background-attachment: fixed;
 }
 
 #root {
@@ -42,43 +49,49 @@ body {
 a {
   color: var(--color-primary);
   text-decoration: none;
+  transition: color var(--transition-base);
 }
 
 a:hover {
   text-decoration: underline;
+  color: var(--color-primary-dark);
 }
 
 button {
   font-family: inherit;
   font-size: 1rem;
   cursor: pointer;
-  border-radius: 12px;
-  padding: 0.65rem 1.1rem;
-  border: 1px solid var(--color-primary);
-  background-color: var(--color-primary);
-  color: #ffffff;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  border: none;
+  background: linear-gradient(120deg, var(--color-primary), var(--color-primary-dark));
+  color: var(--color-ink-inverse);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 16px 32px rgba(212, 165, 116, 0.25);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), filter var(--transition-base);
 }
 
 button:hover {
-  background-color: var(--color-primary-dark);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 24px 48px rgba(212, 165, 116, 0.35);
+  filter: brightness(1.02);
 }
 
 button.secondary {
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.92);
   color: var(--color-primary);
-  border: 1px solid rgba(37, 99, 235, 0.3);
+  border: 1px solid rgba(212, 165, 116, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(212, 165, 116, 0.35);
 }
 
 button.secondary:hover {
-  background-color: #edf2ff;
+  background-color: #fff3e0;
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.3);
-  outline-offset: 2px;
+  outline: 3px solid rgba(212, 165, 116, 0.45);
+  outline-offset: 3px;
 }
 
 input,
@@ -86,6 +99,22 @@ select,
 textarea {
   font-family: inherit;
   font-size: 1rem;
+  color: inherit;
+}
+
+.fade-up {
+  animation: fadeUp 0.6s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 img {

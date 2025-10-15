@@ -425,35 +425,50 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const registerMember = async (payload: RegisterPayload) => {
     if (firebaseEnabled && payload.email && payload.password) {
+      try {
+        const profile = await registerWithEmail({
+          email: payload.email,
+          password: payload.password,
+          fullName: payload.name,
+          language: 'fr',
+        });
 
-      const profile = await registerWithEmail({
-        email: payload.email,
-        password: payload.password,
-        fullName: payload.name,
-        language: 'fr',
-      });
-      await updateUserProfile(profile.uid, {
-        churchCodeValidated: true,
-        photoUrl: payload.avatar,
-        phone: payload.phone,
-      });
-      const mapped = mapProfileToMember({
-        ...profile,
-        churchCodeValidated: true,
-        photoUrl: payload.avatar,
-        phone: payload.phone,
-      });
-      setMembers((prev) => {
-        const exists = prev.some((member) => member.id === mapped.id);
-        if (exists) {
-          return prev.map((member) =>
-            member.id === mapped.id ? { ...member, ...mapped } : member,
+        const profileUpdates = {
+          churchCodeValidated: true,
+          photoUrl: payload.avatar,
+          phone: payload.phone,
+        };
+
+        try {
+          await updateUserProfile(profile.uid, profileUpdates);
+        } catch (error) {
+          console.warn('[auth] updateUserProfile failed, using merge fallback', error);
+          await setDoc(
+            doc(firebaseServices.db, 'profiles', profile.uid),
+            { ...profileUpdates, updatedAt: serverTimestamp() },
+            { merge: true },
           );
         }
-        return [mapped, ...prev];
-      });
-      setCurrentUser(mapped);
-      return mapped;
+
+        const mapped = mapProfileToMember({
+          ...profile,
+          ...profileUpdates,
+        });
+        setMembers((prev) => {
+          const exists = prev.some((member) => member.id === mapped.id);
+          if (exists) {
+            return prev.map((member) =>
+              member.id === mapped.id ? { ...member, ...mapped } : member,
+            );
+          }
+          return [mapped, ...prev];
+        });
+        setCurrentUser(mapped);
+        return mapped;
+      } catch (error) {
+        console.error('[auth] registerMember failed', error);
+        throw error;
+      }
     }
 
     const newMember: Member = {
