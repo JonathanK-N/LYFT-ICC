@@ -74,6 +74,8 @@ function AppContainer() {
             )
           }
         />
+        <Route path="/map" element={<Navigate to="/home" replace />} />
+        <Route path="/events" element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <NotificationsTray />
