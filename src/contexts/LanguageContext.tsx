@@ -4,7 +4,7 @@ import type { Language } from '../types';
 
 type TranslationMap = Record<string, string>;
 
-const translations: Record<Language, TranslationMap> = {
+const translations: Record<'fr', TranslationMap> = {
   fr: {
     app_name: 'Lyft-ICC',
     welcome_title: 'Bienvenue sur Lyft-ICC !',
@@ -81,7 +81,6 @@ const translations: Record<Language, TranslationMap> = {
     open_map: 'Ouvrir la carte',
     placeholder_map: 'Carte Google Maps (placeholder)',
   },
-  en: {
     app_name: 'Lyft-ICC',
     welcome_title: 'Welcome to Lyft-ICC!',
     welcome_subtitle:
@@ -155,9 +154,7 @@ const translations: Record<Language, TranslationMap> = {
     rating_invitation: 'Rate your ride',
     donate_prompt: 'Support Impact Centre Chrétien',
     open_map: 'Open map',
-    placeholder_map: 'Google Maps placeholder',
-  },
-};
+
 
 interface LanguageContextValue {
   language: Language;
@@ -175,8 +172,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const value = useMemo<LanguageContextValue>(
     () => ({
       language,
-      toggleLanguage: () =>
-        setLanguage((prev) => (prev === 'fr' ? 'en' : 'fr')),
+      toggleLanguage: () => {},
       translate: (key) =>
         translations[language][key] ??
         translations.fr[key] ??

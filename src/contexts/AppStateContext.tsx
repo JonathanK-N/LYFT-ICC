@@ -413,12 +413,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const registerMember = async (payload: RegisterPayload) => {
     if (firebaseEnabled && payload.email && payload.password) {
-      const language = payload.language ?? 'fr';
+
       const profile = await registerWithEmail({
         email: payload.email,
         password: payload.password,
         fullName: payload.name,
-        language,
+        language: 'fr',
       });
       await updateUserProfile(profile.uid, {
         churchCodeValidated: true,

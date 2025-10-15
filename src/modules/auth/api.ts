@@ -26,7 +26,7 @@ export async function registerWithEmail({
   email: string;
   password: string;
   fullName: string;
-  language: 'fr' | 'en';
+  language: 'fr';
 }) {
   const userCredential = await createUserWithEmailAndPassword(
     firebaseServices.auth,
@@ -41,7 +41,7 @@ export async function registerWithEmail({
     email,
     role: 'passenger',
     churchCodeValidated: false,
-    language,
+    language: 'fr',
     stats: {
       ridesTaken: 0,
       ridesGiven: 0,

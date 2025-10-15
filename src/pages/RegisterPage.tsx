@@ -12,7 +12,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [language, setLanguage] = useState<Language>('fr');
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export default function RegisterPage() {
         name: fullName.trim(),
         email: email.trim() ? email.trim() : undefined,
         phone: phone.trim() ? phone.trim() : undefined,
-        language,
+
         password: password.trim() ? password.trim() : undefined,
       });
       if (!member) {
@@ -97,16 +97,6 @@ export default function RegisterPage() {
             onChange={(event) => setPhone(event.target.value)}
             placeholder="+33 6 00 00 00 00"
           />
-
-          <label htmlFor="language">Langue</label>
-          <select
-            id="language"
-            value={language}
-            onChange={(event) => setLanguage(event.target.value as Language)}
-          >
-            <option value="fr">Francais</option>
-            <option value="en">English</option>
-          </select>
 
           <label htmlFor="password">Mot de passe</label>
           <input
