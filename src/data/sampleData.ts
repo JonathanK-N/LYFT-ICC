@@ -12,7 +12,7 @@ export const sampleMembers: Member[] = [
     role: 'admin',
     verified: true,
     language: 'fr',
-    badges: [],
+    badges: ['Super Admin', 'Fondateur'],
     ridesGiven: 0,
     ridesTaken: 0,
     password: 'admin123',

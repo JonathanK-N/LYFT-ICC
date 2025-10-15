@@ -365,15 +365,17 @@ export default function ProfilePage() {
         animate="visible"
         custom={5}
       >
-        <motion.button
-          type="button"
-          onClick={() => navigate('/admin')}
-          disabled={currentUser.role !== 'admin'}
-          whileHover={{ y: currentUser.role === 'admin' ? -2 : 0 }}
-          whileTap={currentUser.role === 'admin' ? { scale: 0.97 } : undefined}
-        >
-          <FiShield /> {translate('admin_portal')}
-        </motion.button>
+        {currentUser.role === 'admin' && (
+          <motion.button
+            type="button"
+            onClick={() => navigate('/admin')}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            className="admin-btn"
+          >
+            <FiShield /> {translate('admin_portal')}
+          </motion.button>
+        )}
         <motion.button
           type="button"
           onClick={async () => {
