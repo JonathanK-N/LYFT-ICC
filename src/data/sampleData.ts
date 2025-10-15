@@ -21,7 +21,35 @@ export const sampleMembers: Member[] = [
 
 export const sampleRides: Ride[] = [];
 
-export const sampleEvents: Event[] = [];
+export const sampleEvents: Event[] = [
+  {
+    id: 'event-1',
+    title: 'Culte Dominical',
+    description: 'Service religieux hebdomadaire avec louange et prédication',
+    location: '219 rue Queen, Sherbrooke, QC, Canada',
+    startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Dans 2 jours
+    category: 'service',
+    icon: '⛪',
+  },
+  {
+    id: 'event-2',
+    title: 'Conférence Jeunesse',
+    description: 'Rencontre spéciale pour les jeunes de 16-30 ans',
+    location: '219 rue Queen, Sherbrooke, QC, Canada',
+    startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // Dans 5 jours
+    category: 'conference',
+    icon: '🎤',
+  },
+  {
+    id: 'event-3',
+    title: 'Repas Communautaire',
+    description: 'Moment de partage et de communion fraternelle',
+    location: '219 rue Queen, Sherbrooke, QC, Canada',
+    startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Dans 7 jours
+    category: 'social',
+    icon: '🍽️',
+  },
+];
 
 export const sampleNotifications: NotificationItem[] = [];
 

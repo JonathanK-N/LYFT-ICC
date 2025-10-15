@@ -1,292 +1,117 @@
-import { motion } from 'framer-motion';
-import type { Variants } from 'framer-motion';
-import {
-  FiAlertTriangle,
-  FiArrowRight,
-  FiCalendar,
-  FiMapPin,
-  FiMessageCircle,
-  FiPlusCircle,
-  FiUsers,
-} from 'react-icons/fi';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
-import { useLanguage } from '../contexts/LanguageContext';
 import '../pages/styles/HomePage.css';
 
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (index = 1) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.4,
-      delay: 0.08 * index,
-      ease: 'easeOut' as const,
-    },
-  }),
-};
-
 export default function HomePage() {
-  const {
-    currentUser,
-    rides,
-    events,
-    notifications,
-    rideRequests,
-    adminStats,
-  } = useAppState();
-  const { translate } = useLanguage();
+  const { events, currentUser } = useAppState();
   const navigate = useNavigate();
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
-  if (!currentUser) {
-    return null;
-  }
+  const upcomingEvents = events
+    .filter(event => new Date(event.startTime) > new Date())
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-  const upcomingRides = rides.slice(0, 5);
-  const highlightedEvents = events.slice(0, 3);
-  const pendingRequests = rideRequests.filter(
-    (request) =>
-      currentUser.role === 'driver' &&
-      request.status === 'pending' &&
-      rides.some((ride) => ride.id === request.rideId && ride.driverId === currentUser.id),
-  );
+  const handleEventClick = (eventId: string) => {
+    setSelectedEvent(eventId);
+  };
 
-  const greeting = translate('welcome_title').replace('!', '');
+  const handleRequestRide = () => {
+    if (selectedEvent) {
+      navigate(`/ride-request/${selectedEvent}`);
+    }
+  };
+
+  const handleOfferRide = () => {
+    if (selectedEvent) {
+      navigate(`/ride-offer/${selectedEvent}`);
+    }
+  };
 
   return (
-    <section className="home-screen">
-      <motion.article
-        className="panel gradient home-hero"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="home-hero__top">
-          <div className="home-hero__avatar">
-            <img
-              src={
-                currentUser.avatar ??
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=03152C&color=ffffff`
-              }
-              alt={currentUser.name}
-            />
-          </div>
-          <div className="home-hero__copy">
-            <p className="home-hero__eyebrow">Impact Centre Chretien</p>
-            <h1 className="home-hero__title">
-              {greeting}, {currentUser.name.split(' ')[0]}
-            </h1>
-            <p className="home-hero__subtitle">
-              {currentUser.role === 'driver' ? translate('offer_ride') : translate('search_rides')}
-            </p>
+    <div className="home-page">
+      <div className="home-header">
+        <div className="welcome-section">
+          <img src="/icons/icon-192.png" alt="ICC" className="home-logo" />
+          <div>
+            <h1>Bonjour {currentUser?.name?.split(' ')[0]} 👋</h1>
+            <p>Événements ICC à venir</p>
           </div>
         </div>
-        <div className="home-hero__stats">
-          <div>
-            <span>Rides taken</span>
-            <strong>{currentUser.ridesTaken}</strong>
-          </div>
-          <div>
-            <span>Rides given</span>
-            <strong>{currentUser.ridesGiven}</strong>
-          </div>
-          <div>
-            <span>Community</span>
-            <strong>{adminStats.totalMembers}</strong>
-          </div>
-        </div>
-      </motion.article>
+      </div>
 
-      <motion.article
-        className="panel glass home-actions"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={2}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">Experience</p>
-            <p className="subtitle">Choisissez votre trajet en un geste.</p>
+      <div className="events-container">
+        {upcomingEvents.length === 0 ? (
+          <div className="no-events">
+            <p>Aucun événement à venir pour le moment</p>
           </div>
-          <button type="button" className="icon-ghost" onClick={() => navigate('/map')}>
-            <FiMapPin />
-          </button>
-        </header>
-        <div className="home-actions__grid">
-          <button type="button" onClick={() => navigate('/map')} className="action-card primary">
-            <span className="icon">🚗</span>
-            <div>
-              <strong>{translate('search_rides')}</strong>
-              <small>Rejoignez la prochaine messe en covoiturage</small>
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/map', { state: { mode: 'driver' } })}
-            className="action-card"
-          >
-            <span className="icon">🕊️</span>
-            <div>
-              <strong>{translate('offer_ride')}</strong>
-              <small>Partagez votre vehicule et vos benedictions</small>
-            </div>
-          </button>
-          <button type="button" onClick={() => navigate('/events')} className="action-card">
-            <span className="icon">📅</span>
-            <div>
-              <strong>{translate('events')}</strong>
-              <small>{translate('suggestions_from_calendar')}</small>
-            </div>
-          </button>
-          <button type="button" onClick={() => navigate('/profile')} className="action-card">
-            <span className="icon">❤️</span>
-            <div>
-              <strong>{translate('donate_prompt')}</strong>
-              <small>Un simple clic vers la page de dons</small>
-            </div>
-          </button>
-        </div>
-      </motion.article>
-
-      <motion.article
-        className="panel glass home-rides"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={3}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">Rides proches</p>
-            <p className="subtitle">Les conducteurs ICC disponibles des maintenant.</p>
-          </div>
-          <button type="button" className="icon-ghost" onClick={() => navigate('/map')}>
-            <FiPlusCircle />
-          </button>
-        </header>
-        <div className="ride-scroll">
-          {upcomingRides.map((ride, index) => (
-            <motion.button
-              type="button"
-              key={ride.id}
-              className="ride-card"
-              onClick={() => navigate('/map', { state: { rideId: ride.id } })}
-              whileHover={{ translateY: -4 }}
-              transition={{ type: 'spring', stiffness: 220, damping: 16 }}
-              custom={index}
-            >
-              <div className="ride-card__header">
-                <span className="driver-avatar">
-                  {ride.driverAvatar ? <img src={ride.driverAvatar} alt={ride.driverName} /> : <FiUsers />}
-                </span>
-                <div>
-                  <strong>{ride.driverName}</strong>
-                  <small>
-                    {ride.vehicle.make} {ride.vehicle.model}
-                  </small>
+        ) : (
+          <div className="events-grid">
+            {upcomingEvents.map((event) => (
+              <div
+                key={event.id}
+                className={`event-card ${selectedEvent === event.id ? 'selected' : ''}`}
+                onClick={() => handleEventClick(event.id)}
+              >
+                <div className="event-icon">{event.icon}</div>
+                <div className="event-info">
+                  <h3>{event.title}</h3>
+                  <p className="event-date">
+                    {new Date(event.startTime).toLocaleDateString('fr-FR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                  <p className="event-location">📍 {event.location}</p>
+                  {event.description && (
+                    <p className="event-description">{event.description}</p>
+                  )}
                 </div>
-                <span className={`status status-${ride.status}`}>{ride.status}</span>
+                <div className="event-category">
+                  <span className={`category-badge ${event.category}`}>
+                    {event.category === 'service' ? 'Service' : 
+                     event.category === 'conference' ? 'Conférence' : 'Social'}
+                  </span>
+                </div>
               </div>
-              <div className="ride-card__body">
-                <p>
-                  <FiMapPin /> {ride.origin} → {ride.destination}
-                </p>
-                <p>
-                  <FiCalendar /> {new Date(ride.departureTime).toLocaleString()}
-                </p>
-                <p className="seats">
-                  Places restantes: {ride.seatsAvailable - ride.seatsBooked}/{ride.seatsAvailable}
-                </p>
-              </div>
-            </motion.button>
-          ))}
-          {upcomingRides.length === 0 && <div className="empty-state">Aucun trajet pour le moment.</div>}
-        </div>
-      </motion.article>
+            ))}
+          </div>
+        )}
+      </div>
 
-      {pendingRequests.length > 0 && (
-        <motion.article
-          className="panel alert"
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          custom={4}
-        >
-          <div className="alert__icon">
-            <FiAlertTriangle />
+      {selectedEvent && (
+        <div className="ride-actions">
+          <div className="actions-header">
+            <h2>Choisissez votre option</h2>
+            <p>Pour l'événement sélectionné</p>
           </div>
-          <div className="alert__body">
-            <strong>{translate('pending_requests')}</strong>
-            <p>
-              {currentUser.name}, {pendingRequests.length} demandes attendent votre confirmation.
-            </p>
-          </div>
-          <button type="button" onClick={() => navigate('/map', { state: { mode: 'driver' } })}>
-            {translate('accept')}
-          </button>
-        </motion.article>
-      )}
-
-      <motion.article
-        className="panel glass home-events"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={5}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">Agenda ICC</p>
-            <p className="subtitle">Ne ratez pas les celebrations a venir.</p>
-          </div>
-          <button type="button" className="icon-ghost" onClick={() => navigate('/events')}>
-            <FiArrowRight />
-          </button>
-        </header>
-        <div className="event-slider">
-          {highlightedEvents.map((event) => (
-            <div
-              key={event.id}
-              className="event-chip"
-              onClick={() => navigate('/events', { state: { eventId: event.id } })}
+          <div className="actions-buttons">
+            <button 
+              className="action-btn request-btn"
+              onClick={handleRequestRide}
             >
-              <span className="icon">{event.icon}</span>
+              <span className="btn-icon">🚗</span>
               <div>
-                <strong>{event.title}</strong>
-                <small>
-                  {new Date(event.startTime).toLocaleString()} · {event.location}
-                </small>
+                <strong>Demander un trajet</strong>
+                <small>Trouvez un conducteur</small>
               </div>
-            </div>
-          ))}
-        </div>
-      </motion.article>
-
-      <motion.article
-        className="panel glass home-feed"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        custom={6}
-      >
-        <header className="panel-header">
-          <div>
-            <p className="title">Updates</p>
-            <p className="subtitle">Messages recents de la communaute.</p>
+            </button>
+            <button 
+              className="action-btn offer-btn"
+              onClick={handleOfferRide}
+            >
+              <span className="btn-icon">🚙</span>
+              <div>
+                <strong>Offrir un trajet</strong>
+                <small>Aidez d'autres membres</small>
+              </div>
+            </button>
           </div>
-          <FiMessageCircle />
-        </header>
-        <ul className="home-feed__list">
-          {notifications.slice(0, 4).map((notification) => (
-            <li key={notification.id}>{notification.message}</li>
-          ))}
-        </ul>
-      </motion.article>
-    </section>
+        </div>
+      )}
+    </div>
   );
 }
-
-
-

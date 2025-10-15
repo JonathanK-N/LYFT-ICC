@@ -1,0 +1,305 @@
+.ride-page {
+  min-height: 100vh;
+  background: #FEFCF8;
+  padding-bottom: 100px;
+}
+
+.ride-header {
+  background: linear-gradient(135deg, #D4A574 0%, #B8935F 100%);
+  padding: 20px 16px 24px;
+  color: white;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.event-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.event-icon {
+  font-size: 2.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.event-info h1 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+}
+
+.event-info p {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.event-info small {
+  opacity: 0.8;
+  font-size: 0.85rem;
+}
+
+.ride-content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* États vides */
+.no-rides, .not-driver {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-rides-icon, .not-driver-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+.no-rides h2, .not-driver h2 {
+  margin: 0 0 12px;
+  color: #2C1810;
+  font-family: 'Poppins', sans-serif;
+}
+
+.no-rides p, .not-driver p {
+  margin: 0 0 24px;
+  color: #8D6E63;
+  line-height: 1.5;
+}
+
+.offer-alternative-btn, .upgrade-btn {
+  background: linear-gradient(135deg, #D4A574 0%, #B8935F 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.offer-alternative-btn:hover, .upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 165, 116, 0.4);
+}
+
+/* Formulaire */
+.ride-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-section {
+  background: white;
+  border: 1px solid #F0E6D2;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.form-section h2 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  color: #2C1810;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Liste des trajets */
+.rides-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ride-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid #F0E6D2;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ride-option:hover {
+  border-color: #D4A574;
+  background: #FFF9F0;
+}
+
+.ride-option input[type="radio"] {
+  margin-top: 4px;
+  accent-color: #D4A574;
+}
+
+.ride-details {
+  flex: 1;
+}
+
+.driver-info strong {
+  display: block;
+  color: #2C1810;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.vehicle-info {
+  color: #8D6E63;
+  font-size: 0.85rem;
+}
+
+.ride-route {
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ride-route span {
+  color: #5D4037;
+  font-size: 0.9rem;
+}
+
+.seats-info {
+  color: #D4A574;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Champs de saisie */
+.address-input, .datetime-input, .notes-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #F0E6D2;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.address-input:focus, .datetime-input:focus, .notes-input:focus {
+  outline: none;
+  border-color: #D4A574;
+}
+
+.input-help {
+  display: block;
+  margin-top: 8px;
+  color: #8D6E63;
+  font-size: 0.85rem;
+}
+
+/* Sélecteur de places */
+.seats-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.seat-btn {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #F0E6D2;
+  background: white;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.seat-btn:hover {
+  border-color: #D4A574;
+  background: #FFF9F0;
+}
+
+.seat-btn.active {
+  background: #D4A574;
+  border-color: #D4A574;
+  color: white;
+}
+
+/* Info destination */
+.destination-info {
+  background: #E8F5E8;
+  border: 1px solid #C8E6C9;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.destination-info h3 {
+  margin: 0 0 8px;
+  color: #2E7D32;
+  font-size: 1rem;
+}
+
+.destination-info p {
+  margin: 0 0 4px;
+  color: #1B5E20;
+  font-weight: 600;
+}
+
+.destination-info small {
+  color: #4CAF50;
+  font-size: 0.85rem;
+}
+
+/* Bouton de soumission */
+.submit-btn {
+  background: linear-gradient(135deg, #D4A574 0%, #B8935F 100%);
+  color: white;
+  border: none;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 165, 116, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .event-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .ride-option {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .ride-option input[type="radio"] {
+    align-self: flex-start;
+  }
+}

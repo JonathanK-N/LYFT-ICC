@@ -4,6 +4,8 @@ import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
+import RideRequestPage from './pages/RideRequestPage';
+import RideOfferPage from './pages/RideOfferPage';
 import MapPage from './pages/MapPage';
 import EventsPage from './pages/EventsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -58,6 +60,14 @@ function AppContainer() {
           element={currentUser ? <HomePage /> : <Navigate to="/login" replace />}
         />
         <Route
+          path="/ride-request/:eventId"
+          element={currentUser ? <RideRequestPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/ride-offer/:eventId"
+          element={currentUser ? <RideOfferPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
           path="/map"
           element={currentUser ? <MapPage /> : <Navigate to="/login" replace />}
         />
@@ -75,7 +85,7 @@ function AppContainer() {
             currentUser?.role === 'admin' ? (
               <AdminDashboard />
             ) : (
-              <Navigate to={currentUser ? '/map' : '/login'} replace />
+              <Navigate to={currentUser ? '/home' : '/login'} replace />
             )
           }
         />
