@@ -77,12 +77,22 @@ interface DriverLocationInput {
   updatedAt?: Date;
 }
 
+interface RideRequestPublic {
+  id: string;
+  eventId: string;
+  passengerName: string;
+  pickupAddress: string;
+  message?: string;
+  createdAt: string;
+}
+
 interface AppStateContextValue {
   members: Member[];
   rides: Ride[];
   events: typeof sampleEvents;
   notifications: NotificationItem[];
   rideRequests: RideRequest[];
+  publicRequests: RideRequestPublic[];
   chatMessages: Record<string, ChatMessage[]>;
   currentUser?: Member;
   adminStats: AdminStats;
@@ -103,6 +113,7 @@ interface AppStateContextValue {
   sendAnnouncement: (message: string) => Promise<void>;
   updateDriverLocation: (input: DriverLocationInput) => Promise<void>;
   createEvent: (event: any) => Promise<void>;
+  publishRideRequest: (eventId: string, pickupAddress: string, message?: string) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(
@@ -243,6 +254,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(sampleNotifications);
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
+  const [publicRequests, setPublicRequests] = useState<RideRequestPublic[]>([]);
   const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>(
     {},
   );
@@ -863,6 +875,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setEvents((prev) => [newEvent, ...prev]);
   };
 
+  const publishRideRequest = async (eventId: string, pickupAddress: string, message?: string) => {
+    if (!currentUser) return;
+    
+    const newRequest: RideRequestPublic = {
+      id: `pub-req-${Math.random().toString(36).slice(2, 10)}`,
+      eventId,
+      passengerName: currentUser.name,
+      pickupAddress,
+      message,
+      createdAt: new Date().toISOString(),
+    };
+    
+    setPublicRequests((prev) => [newRequest, ...prev]);
+  };
+
   const value = useMemo<AppStateContextValue>(
     () => ({
       members,
@@ -870,6 +897,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       events,
       notifications,
       rideRequests,
+      publicRequests,
       chatMessages,
       currentUser,
       adminStats,
@@ -887,6 +915,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       sendAnnouncement,
       updateDriverLocation,
       createEvent,
+      publishRideRequest,
     }),
     [
       members,
@@ -911,6 +940,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       sendAnnouncement,
       updateDriverLocation,
       createEvent,
+      publishRideRequest,
+      publicRequests,
     ],
   );
 

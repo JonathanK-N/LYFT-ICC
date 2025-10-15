@@ -11,7 +11,7 @@ const MAP_CENTER: [number, number] = [-71.8998, 45.4042];
 export default function RideMapPage() {
   const { eventId, mode } = useParams<{ eventId: string; mode: 'request' | 'offer' }>();
   const navigate = useNavigate();
-  const { events, rides, rideRequests, currentUser, createRide, requestRide, respondToRideRequest } = useAppState();
+  const { events, rides, rideRequests, publicRequests, currentUser, createRide, requestRide, respondToRideRequest, publishRideRequest } = useAppState();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   
@@ -99,8 +99,11 @@ export default function RideMapPage() {
     try {
       const destinationCoords = await geocodeAddress(event!.location, mapboxToken);
 
+      // Utiliser l'adresse de l'événement comme point de départ temporaire
+      const eventCoords = await geocodeAddress(event!.location, mapboxToken);
+      
       await createRide({
-        origin: { address: 'À définir par les passagers', lat: 0, lng: 0 },
+        origin: { address: event!.location, lat: eventCoords.lat, lng: eventCoords.lng },
         destination: destinationCoords,
         departureTime: new Date(departureTime).toISOString(),
         seatsAvailable: seats,
@@ -122,12 +125,9 @@ export default function RideMapPage() {
 
   const handlePublishRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestPickup.trim()) return;
+    if (!requestPickup.trim() || !eventId) return;
 
-    // Créer une demande publique que les conducteurs peuvent voir
-    const requestMessage = `📍 ${requestPickup}${requestNotes ? `\n💬 ${requestNotes}` : ''}`;
-    
-    // Ajouter à une liste de demandes publiques (simulation)
+    await publishRideRequest(eventId, requestPickup, requestNotes);
     alert('Demande de trajet publiée! Les conducteurs pourront la voir.');
     setRequestPickup('');
     setRequestNotes('');
@@ -259,9 +259,10 @@ export default function RideMapPage() {
                   </button>
                 </form>
 
+                {/* Demandes directes pour mes trajets */}
                 {pendingRequests.length > 0 && (
                   <div className="requests-section">
-                    <h3>Demandes reçues</h3>
+                    <h3>Demandes pour mes trajets</h3>
                     {pendingRequests.map((request) => (
                       <div key={request.id} className="request-item">
                         <strong>{request.passengerName}</strong>
@@ -269,6 +270,21 @@ export default function RideMapPage() {
                         <button onClick={() => handleAcceptRequest(request.id)}>
                           Accepter
                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Demandes publiques pour cet événement */}
+                {publicRequests.filter(req => req.eventId === eventId).length > 0 && (
+                  <div className="requests-section">
+                    <h3>Demandes publiques pour cet événement</h3>
+                    {publicRequests.filter(req => req.eventId === eventId).map((request) => (
+                      <div key={request.id} className="request-item">
+                        <strong>{request.passengerName}</strong>
+                        <p>📍 {request.pickupAddress}</p>
+                        {request.message && <p>💬 {request.message}</p>}
+                        <small>{new Date(request.createdAt).toLocaleString()}</small>
                       </div>
                     ))}
                   </div>
