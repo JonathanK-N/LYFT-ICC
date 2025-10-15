@@ -185,7 +185,7 @@ const mapEventEntityToEvent = (entity: EventEntity) => ({
     entity.startTime instanceof Date
       ? entity.startTime.toISOString()
       : (entity.startTime as any)?.toDate ? (entity.startTime as any).toDate().toISOString() : new Date().toISOString(),
-  location: entity.location.address,
+  location: typeof entity.location === 'string' ? entity.location : entity.location.address,
   category: entity.category,
   icon: entity.icon,
 });

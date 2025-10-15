@@ -96,7 +96,7 @@ export interface EventEntity {
   };
   startTime: Timestamp;
   endTime: Timestamp;
-  category: 'messe' | 'priere' | 'conference' | 'jeunesse' | 'special';
+  category: 'service' | 'conference' | 'social' | 'jeunesse' | 'special';
   icon: string;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
