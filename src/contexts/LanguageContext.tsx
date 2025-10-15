@@ -100,7 +100,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       language,
       toggleLanguage: () => {},
       translate: (key) =>
-        translations.fr[key] ?? key.replace(/_/g, ' '),
+        (translations.fr as any)[key] ?? key.replace(/_/g, ' '),
     }),
     [language],
   );
