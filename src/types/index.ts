@@ -75,7 +75,7 @@ export interface Event {
   description: string;
   startTime: string;
   location: string;
-  category: 'messe' | 'priere' | 'conference' | 'jeunesse' | 'special';
+  category: 'service' | 'conference' | 'social' | 'jeunesse' | 'special';
   icon: string;
 }
 

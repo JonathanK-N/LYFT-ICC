@@ -156,6 +156,8 @@ export default function AdminDashboard() {
                     <option value="service">Service religieux</option>
                     <option value="conference">Conférence</option>
                     <option value="social">Événement social</option>
+                    <option value="jeunesse">Jeunesse</option>
+                    <option value="special">Spécial</option>
                   </select>
                 </div>
               </div>

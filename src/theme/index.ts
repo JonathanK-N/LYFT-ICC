@@ -1,34 +1,19 @@
 import { useEffect } from 'react';
-import { gradients, layout, palette, radius, typography } from './tokens';
+import { designTokens } from './tokens';
 
 const cssVariables: Record<string, string> = {
-  '--icc-color-night': palette.night,
-  '--icc-color-midnight': palette.midnight,
-  '--icc-color-deep-blue': palette.deepBlue,
-  '--icc-color-cobalt': palette.cobalt,
-  '--icc-color-sky': palette.sky,
-  '--icc-color-aqua': palette.aqua,
-  '--icc-color-gold': palette.gold,
-  '--icc-color-amber': palette.amber,
-  '--icc-color-soft-white': palette.softWhite,
-  '--icc-color-muted': palette.muted,
-  '--icc-color-success': palette.success,
-  '--icc-color-danger': palette.danger,
-  '--icc-gradient-primary': gradients.primary,
-  '--icc-gradient-accent': gradients.accent,
-  '--icc-gradient-glass': gradients.glass,
-  '--icc-gradient-overlay': gradients.overlay,
-  '--icc-radius-xs': radius.xs,
-  '--icc-radius-sm': radius.sm,
-  '--icc-radius-md': radius.md,
-  '--icc-radius-lg': radius.lg,
-  '--icc-radius-xl': radius.xl,
-  '--icc-radius-pill': radius.pill,
-  '--icc-max-width': layout.maxWidth,
-  '--icc-gutter': layout.gutter,
-  '--icc-safe-inset': layout.safeInset,
-  '--icc-font-display': typography.family.display,
-  '--icc-font-body': typography.family.body,
+  '--color-primary': designTokens.colors.primary,
+  '--color-primary-dark': designTokens.colors.primaryDark,
+  '--color-primary-light': designTokens.colors.primaryLight,
+  '--color-secondary': designTokens.colors.secondary,
+  '--color-background': designTokens.colors.background,
+  '--color-surface': designTokens.colors.surface,
+  '--color-text': designTokens.colors.text.primary,
+  '--color-text-muted': designTokens.colors.text.muted,
+  '--color-border': designTokens.colors.border,
+  '--shadow-sm': designTokens.shadows.sm,
+  '--shadow-md': designTokens.shadows.md,
+  '--shadow-lg': designTokens.shadows.lg,
 };
 
 export function useDesignTokens() {

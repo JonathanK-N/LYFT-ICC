@@ -73,7 +73,9 @@ export default function HomePage() {
                 <div className="event-category">
                   <span className={`category-badge ${event.category}`}>
                     {event.category === 'service' ? 'Service' : 
-                     event.category === 'conference' ? 'Conférence' : 'Social'}
+                     event.category === 'conference' ? 'Conférence' : 
+                     event.category === 'social' ? 'Social' : 
+                     event.category === 'jeunesse' ? 'Jeunesse' : 'Spécial'}
                   </span>
                 </div>
               </div>
