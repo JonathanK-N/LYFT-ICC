@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
+import { geocodeAddress } from '../lib/map/geocoding';
 import { useAppState } from '../contexts/AppStateContext';
 import './OfferRideForm.css';
 
@@ -10,11 +11,13 @@ interface RequestRideFormProps {
 interface FormState {
   pickupAddress: string;
   notes: string;
+  passengers: number;
 }
 
 const initialState: FormState = {
   pickupAddress: '',
   notes: '',
+  passengers: 1,
 };
 
 export default function RequestRideForm({ selectedEvent }: RequestRideFormProps) {
@@ -24,11 +27,13 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedRide, setSelectedRide] = useState<string>('');
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
   const handleChange = (key: keyof FormState) => (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
-    setForm((prev) => ({ ...prev, [key]: event.target.value }));
+    const value = key === 'passengers' ? Number(event.target.value) : event.target.value;
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const availableRides = rides
@@ -53,19 +58,41 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
 
     setLoading(true);
     try {
-      await requestRide(
-        selectedRide,
-        `Adresse de prise en charge: ${form.pickupAddress}. ${form.notes}`,
-      );
+      if (!mapboxToken) {
+        throw new Error('Configurez VITE_MAPBOX_TOKEN pour activer la geolocalisation.');
+      }
+      const pickup = await geocodeAddress(form.pickupAddress, mapboxToken);
+      await requestRide({
+        rideId: selectedRide,
+        pickupAddress: pickup.address,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        passengers: form.passengers,
+        notes: form.notes.trim() ? form.notes.trim() : undefined,
+      });
       setSuccess('Demande envoyee au conducteur.');
       setForm(initialState);
       setSelectedRide('');
     } catch (err) {
-      setError('Impossible d envoyer la demande.');
+      setError(
+        err instanceof Error ? err.message : 'Impossible d envoyer la demande.',
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  if (!mapboxToken) {
+    return (
+      <section className="offer-ride">
+        <h2>Demander un trajet</h2>
+        <p className="offer-ride__info">
+          Ajoutez VITE_MAPBOX_TOKEN dans vos variables d environnement pour activer la
+          localisation des adresses.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="offer-ride">
@@ -113,6 +140,19 @@ export default function RequestRideForm({ selectedEvent }: RequestRideFormProps)
               placeholder="123 rue Exemple, Sherbrooke, QC"
               required
             />
+
+            <label htmlFor="passengers">Nombre de passagers</label>
+            <select
+              id="passengers"
+              value={form.passengers}
+              onChange={handleChange('passengers')}
+            >
+              {[1, 2, 3, 4, 5, 6].map((count) => (
+                <option key={count} value={count}>
+                  {count} passager{count > 1 ? 's' : ''}
+                </option>
+              ))}
+            </select>
 
             <label htmlFor="notes">Message pour le conducteur (optionnel)</label>
             <textarea

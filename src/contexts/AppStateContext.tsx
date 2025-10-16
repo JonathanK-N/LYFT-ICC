@@ -26,6 +26,7 @@ import type {
   Member,
   NotificationItem,
   Ride,
+  RidePickupPlan,
   RideRequest,
   VehicleInfo,
 } from '../types';
@@ -48,6 +49,7 @@ import {
   signOutCurrentUser,
   updateUserProfile,
 } from '../modules/auth/api';
+import { optimizeRoute } from '../lib/map/mapboxOptimization';
 
 interface RegisterPayload {
   name: string;
@@ -77,6 +79,15 @@ interface DriverLocationInput {
   updatedAt?: Date;
 }
 
+interface RequestRideInput {
+  rideId: string;
+  pickupAddress: string;
+  pickupLat: number;
+  pickupLng: number;
+  passengers?: number;
+  notes?: string;
+}
+
 interface RideRequestPublic {
   id: string;
   eventId: string;
@@ -101,7 +112,7 @@ interface AppStateContextValue {
   logout: () => Promise<void>;
   upgradeToDriver: (vehicle: VehicleInfo) => Promise<void>;
   createRide: (input: CreateRideInput) => Promise<void>;
-  requestRide: (rideId: string, message?: string) => Promise<void>;
+  requestRide: (input: RequestRideInput) => Promise<void>;
   respondToRideRequest: (requestId: string, accepted: boolean) => Promise<void>;
   startRide: (rideId: string) => Promise<void>;
   finishRide: (rideId: string) => Promise<void>;
@@ -131,6 +142,34 @@ const toIsoString = (value: Timestamp | Date | undefined | null): string | undef
     return (value as Timestamp).toDate().toISOString();
   }
   return undefined;
+};
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const haversineDistanceKm = (
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+): number => {
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(destination.lat - origin.lat);
+  const dLng = toRadians(destination.lng - origin.lng);
+  const lat1 = toRadians(origin.lat);
+  const lat2 = toRadians(destination.lat);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round((earthRadiusKm * c + Number.EPSILON) * 100) / 100;
+};
+
+const estimateDurationMinutes = (distanceKm?: number): number | undefined => {
+  if (!distanceKm || Number.isNaN(distanceKm)) {
+    return undefined;
+  }
+  const cruisingSpeedKmH = 35; // hypothèse réaliste en zone urbaine
+  const minutes = (distanceKm / cruisingSpeedKmH) * 60;
+  return Math.max(2, Math.round(minutes));
 };
 
 const mapProfileToMember = (profile: UserProfile): Member => ({
@@ -200,24 +239,48 @@ const mapEventEntityToEvent = (entity: EventEntity) => ({
   icon: entity.icon,
 });
 
-const mapRideRequestEntity = (entity: RideRequestEntity): RideRequest => ({
-  id: entity.id,
-  rideId: entity.rideId,
-  passengerId: entity.passengerId,
-  passengerName: entity.passengerName,
-  passengerAvatar: entity.passengerPhotoUrl,
-  status:
-    entity.status === 'accepted'
-      ? 'accepted'
-      : entity.status === 'declined'
-      ? 'declined'
-      : 'pending',
-  createdAt:
-    entity.createdAt instanceof Date
-      ? entity.createdAt.toISOString()
-      : (entity.createdAt as any)?.toDate ? (entity.createdAt as any).toDate().toISOString() : new Date().toISOString(),
-  message: entity.message,
-});
+const mapRideRequestEntity = (entity: RideRequestEntity): RideRequest => {
+  const pickup = entity.pickup ?? {
+    address: entity.message ?? 'Adresse a confirmer',
+    lat: 0,
+    lng: 0,
+  };
+  const distanceKm =
+    typeof entity.distanceKm === 'number' && Number.isFinite(entity.distanceKm)
+      ? entity.distanceKm
+      : undefined;
+  const estimatedMinutes =
+    typeof entity.estimatedMinutes === 'number' && Number.isFinite(entity.estimatedMinutes)
+      ? entity.estimatedMinutes
+      : estimateDurationMinutes(distanceKm);
+
+  return {
+    id: entity.id,
+    rideId: entity.rideId,
+    passengerId: entity.passengerId,
+    passengerName: entity.passengerName,
+    passengerAvatar: entity.passengerPhotoUrl,
+    pickupAddress: pickup.address,
+    pickupLat: pickup.lat ?? 0,
+    pickupLng: pickup.lng ?? 0,
+    passengers: entity.passengers ?? 1,
+    status:
+      entity.status === 'accepted'
+        ? 'accepted'
+        : entity.status === 'declined'
+        ? 'declined'
+        : 'pending',
+    createdAt:
+      entity.createdAt instanceof Date
+        ? entity.createdAt.toISOString()
+        : (entity.createdAt as any)?.toDate
+        ? (entity.createdAt as any).toDate().toISOString()
+        : new Date().toISOString(),
+    message: entity.message,
+    distanceKm,
+    estimatedMinutes,
+  };
+};
 
 type NotificationDocument = {
   id?: string;
@@ -751,17 +814,42 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const requestRide = async (rideId: string, message?: string) => {
-    if (!currentUser) return;
+  const requestRide = async (input: RequestRideInput) => {
+    if (!currentUser) {
+      return;
+    }
+
+    const passengers = Math.max(1, Math.min(6, Number(input.passengers ?? 1) || 1));
+    const selectedRide = rides.find((item) => item.id === input.rideId);
+    const rideOrigin =
+      selectedRide && Number.isFinite(selectedRide.originLat) && Number.isFinite(selectedRide.originLng)
+        ? { lat: selectedRide.originLat, lng: selectedRide.originLng }
+        : selectedRide && Number.isFinite(selectedRide.driverLat ?? NaN) && Number.isFinite(selectedRide.driverLng ?? NaN)
+        ? { lat: selectedRide.driverLat!, lng: selectedRide.driverLng! }
+        : undefined;
+    const distanceKm = rideOrigin
+      ? haversineDistanceKm(rideOrigin, { lat: input.pickupLat, lng: input.pickupLng })
+      : undefined;
+    const estimatedMinutes = estimateDurationMinutes(distanceKm);
+    const notes = input.notes?.trim() ? input.notes.trim() : undefined;
+
     if (firebaseEnabled) {
       const requestId = `request-${Math.random().toString(36).slice(2, 10)}`;
       const entity: RideRequestEntity = {
         id: requestId,
-        rideId,
+        rideId: input.rideId,
         passengerId: currentUser.id,
         passengerName: currentUser.name,
         passengerPhotoUrl: currentUser.avatar,
-        message,
+        pickup: {
+          address: input.pickupAddress,
+          lat: input.pickupLat,
+          lng: input.pickupLng,
+        },
+        passengers,
+        distanceKm,
+        estimatedMinutes,
+        message: notes,
         status: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -769,34 +857,204 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       await setDoc(doc(firebaseServices.db, 'rideRequests', requestId), entity);
       return;
     }
+
     const newRequest: RideRequest = {
       id: `req-${Math.random().toString(36).slice(2, 10)}`,
-      rideId,
+      rideId: input.rideId,
       passengerId: currentUser.id,
       passengerName: currentUser.name,
       passengerAvatar: currentUser.avatar,
+      pickupAddress: input.pickupAddress,
+      pickupLat: input.pickupLat,
+      pickupLng: input.pickupLng,
+      passengers,
       status: 'pending',
       createdAt: new Date().toISOString(),
-      message,
+      message: notes,
+      distanceKm,
+      estimatedMinutes,
     };
     setRideRequests((prev) => [newRequest, ...prev]);
   };
 
-  const respondToRideRequest = async (requestId: string, accepted: boolean) => {
-    if (firebaseEnabled) {
-      await updateDoc(doc(firebaseServices.db, 'rideRequests', requestId), {
-        status: accepted ? 'accepted' : 'declined',
-        updatedAt: serverTimestamp(),
-      });
-      return;
-    }
-    setRideRequests((prev) =>
-      prev.map((request) =>
-        request.id === requestId
-          ? { ...request, status: accepted ? 'accepted' : 'declined' }
-          : request,
+  const applyRidePlanToState = (
+    rideId: string,
+    plan: RidePickupPlan[] | undefined,
+    totals?: { totalDistanceKm?: number; totalDurationMinutes?: number },
+  ) => {
+    setRides((prev) =>
+      prev.map((ride) =>
+        ride.id === rideId
+          ? {
+              ...ride,
+              pickupPlan: plan,
+              totalDistanceKm: totals?.totalDistanceKm,
+              totalDurationMinutes: totals?.totalDurationMinutes,
+            }
+          : ride,
       ),
     );
+  };
+
+  const recomputeRidePlan = async (
+    rideId: string,
+    requestsSnapshot?: RideRequest[],
+  ) => {
+    const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
+    const ride = rides.find((item) => item.id === rideId);
+    if (!ride) {
+      return;
+    }
+
+    const requests =
+      requestsSnapshot ??
+      rideRequests;
+
+    const acceptedRequests = requests.filter(
+      (request) => request.rideId === rideId && request.status === 'accepted',
+    );
+
+    if (acceptedRequests.length === 0) {
+      if (firebaseEnabled) {
+        await updateDoc(doc(firebaseServices.db, 'rides', rideId), {
+          pickupPlan: [],
+          totalDistanceKm: null,
+          totalDurationMinutes: null,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      applyRidePlanToState(rideId, undefined, {});
+      const clearedRequests = requests.map((request) =>
+        request.rideId === rideId
+          ? { ...request, estimatedMinutes: undefined }
+          : request,
+      );
+      setRideRequests(clearedRequests);
+      return;
+    }
+
+    if (!mapboxToken) {
+      return;
+    }
+
+    const driverStartLat = Number.isFinite(ride.driverLat) ? ride.driverLat : ride.originLat;
+    const driverStartLng = Number.isFinite(ride.driverLng) ? ride.driverLng : ride.originLng;
+
+    if (
+      !Number.isFinite(driverStartLat) ||
+      !Number.isFinite(driverStartLng) ||
+      !Number.isFinite(ride.destinationLat) ||
+      !Number.isFinite(ride.destinationLng)
+    ) {
+      return;
+    }
+
+    const driverStart = {
+      id: ride.driverId,
+      name: ride.driverName,
+      lat: driverStartLat!,
+      lng: driverStartLng!,
+    };
+    const destination = {
+      id: 'destination',
+      name: ride.destination,
+      lat: ride.destinationLat,
+      lng: ride.destinationLng,
+    };
+
+    const stops = acceptedRequests.slice(0, 10).map((request) => ({
+      id: request.passengerId,
+      name: request.passengerName,
+      lat: request.pickupLat,
+      lng: request.pickupLng,
+    }));
+
+    try {
+      const optimization = await optimizeRoute({
+        accessToken: mapboxToken,
+        driverStart,
+        destination,
+        stops,
+      });
+      if (!optimization) {
+        return;
+      }
+
+      const plan = optimization.orderedStops
+        .map((stop) => {
+          const request = acceptedRequests.find(
+            (item) => item.passengerId === stop.id,
+          );
+          if (!request) {
+            return undefined;
+          }
+          const planEntry: RidePickupPlan = {
+            passengerId: request.passengerId,
+            passengerName: request.passengerName,
+            pickupAddress: request.pickupAddress,
+            pickupLat: request.pickupLat,
+            pickupLng: request.pickupLng,
+            order: stop.order,
+            etaMinutes: stop.etaMinutes,
+          };
+          return planEntry;
+        })
+        .filter(Boolean) as RidePickupPlan[];
+
+      const totals = {
+        totalDistanceKm: optimization.totalDistanceKm,
+        totalDurationMinutes: optimization.totalDurationMinutes,
+      };
+
+      if (firebaseEnabled) {
+        await updateDoc(doc(firebaseServices.db, 'rides', rideId), {
+          pickupPlan: plan,
+          totalDistanceKm: totals.totalDistanceKm ?? null,
+          totalDurationMinutes: totals.totalDurationMinutes ?? null,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      applyRidePlanToState(rideId, plan, totals);
+
+      const enhancedRequests = requests.map((request) => {
+        if (request.rideId !== rideId) {
+          return request;
+        }
+        const match = plan.find(
+          (item) => item.passengerId === request.passengerId,
+        );
+        return {
+          ...request,
+          estimatedMinutes: match?.etaMinutes,
+        };
+      });
+      setRideRequests(enhancedRequests);
+    } catch (error) {
+      console.warn('[ride] route optimization failed', error);
+    }
+  };
+
+  const respondToRideRequest = async (requestId: string, accepted: boolean) => {
+    const targetRequest = rideRequests.find((request) => request.id === requestId);
+    if (!targetRequest) {
+      return;
+    }
+
+    const newStatus: RideRequest['status'] = accepted ? 'accepted' : 'declined';
+    const updatedRequests = rideRequests.map((request) =>
+      request.id === requestId ? { ...request, status: newStatus } : request,
+    );
+
+    setRideRequests(updatedRequests);
+
+    if (firebaseEnabled) {
+      await updateDoc(doc(firebaseServices.db, 'rideRequests', requestId), {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    await recomputeRidePlan(targetRequest.rideId, updatedRequests);
   };
 
   const startRide = async (rideId: string) => {

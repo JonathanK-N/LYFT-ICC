@@ -69,6 +69,17 @@ export interface RideEntity {
     lng: number;
     updatedAt: Timestamp;
   };
+  pickupPlan?: Array<{
+    passengerId: string;
+    passengerName: string;
+    pickupAddress: string;
+    pickupLat: number;
+    pickupLng: number;
+    order: number;
+    etaMinutes?: number;
+  }>;
+  totalDistanceKm?: number;
+  totalDurationMinutes?: number;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }
@@ -79,6 +90,14 @@ export interface RideRequest {
   passengerId: string;
   passengerName: string;
   passengerPhotoUrl?: string;
+  pickup: {
+    address: string;
+    lat: number;
+    lng: number;
+  };
+  passengers: number;
+  distanceKm?: number;
+  estimatedMinutes?: number;
   message?: string;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled';
   createdAt: FirestoreTimestamp;

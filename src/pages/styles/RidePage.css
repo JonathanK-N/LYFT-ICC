@@ -287,6 +287,16 @@
   transform: none;
 }
 
+.form-error {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #fca5a5;
+  background: #fdecec;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 640px) {
   .event-info {
     flex-direction: column;

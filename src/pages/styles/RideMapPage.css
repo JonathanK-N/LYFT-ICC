@@ -44,6 +44,19 @@
   height: 100%;
 }
 
+.map-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: #8D6E63;
+  background: #FFF7EB;
+  border: 1px dashed #E8D5B7;
+}
+
 .ride-panel {
   background: white;
   border-top: 1px solid #E8D5B7;
@@ -240,6 +253,37 @@
 
 .publish-request button {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.publish-request__error,
+.publish-request__success {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.publish-request__error {
+  background: #fdecea;
+  border: 1px solid #f4aaaa;
+  color: #b3261e;
+}
+
+.publish-request__success {
+  background: #e7f6ed;
+  border: 1px solid #9cd5b1;
+  color: #1b5e20;
+}
+
+.empty-note {
+  margin: 0;
+  padding: 16px;
+  border-radius: 10px;
+  background: #FFF9F0;
+  border: 1px dashed #E8D5B7;
+  color: #8D6E63;
+  font-size: 0.95rem;
+  text-align: center;
 }
 
 @media (max-width: 640px) {

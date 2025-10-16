@@ -54,9 +54,22 @@ export interface Ride {
   driverLat?: number;
   driverLng?: number;
   driverLocationUpdatedAt?: string;
+  pickupPlan?: RidePickupPlan[];
+  totalDistanceKm?: number;
+  totalDurationMinutes?: number;
 }
 
 export type RideRequestStatus = 'pending' | 'accepted' | 'declined';
+
+export interface RidePickupPlan {
+  passengerId: string;
+  passengerName: string;
+  pickupAddress: string;
+  pickupLat: number;
+  pickupLng: number;
+  order: number;
+  etaMinutes?: number;
+}
 
 export interface RideRequest {
   id: string;
@@ -64,9 +77,15 @@ export interface RideRequest {
   passengerId: string;
   passengerName: string;
   passengerAvatar?: string;
+  pickupAddress: string;
+  pickupLat: number;
+  pickupLng: number;
+  passengers: number;
   status: RideRequestStatus;
   createdAt: string;
   message?: string;
+  distanceKm?: number;
+  estimatedMinutes?: number;
 }
 
 export interface Event {
